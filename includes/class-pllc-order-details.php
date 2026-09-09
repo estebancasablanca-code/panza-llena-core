@@ -32,6 +32,7 @@ class PLLC_Order_Details {
 		add_filter( 'manage_woocommerce_page_wc-orders_columns', [ __CLASS__, 'add_order_type_column' ], 31 );
 		add_action( 'manage_woocommerce_page_wc-orders_custom_column', [ __CLASS__, 'render_hpos_order_type_column' ], 31, 2 );
 		add_filter( 'woocommerce_order_item_name', [ __CLASS__, 'format_item_name' ], 20, 3 );
+		add_filter( 'woocommerce_order_item_permalink', [ __CLASS__, 'filter_item_permalink' ], 20, 3 );
 		add_filter( 'woocommerce_order_item_class', [ __CLASS__, 'add_item_class' ], 10, 3 );
 		add_filter( 'woocommerce_order_formatted_line_subtotal', [ __CLASS__, 'maybe_hide_line_subtotal' ], 20, 3 );
 		add_filter( 'woocommerce_get_order_item_totals', [ __CLASS__, 'maybe_hide_order_totals' ], 20, 3 );
@@ -352,6 +353,16 @@ class PLLC_Order_Details {
 		echo '</div>';
 	}
 
+	/** Mantiene el mismo criterio de enlaces que el carrito, solo en el detalle público. */
+	public static function filter_item_permalink( $permalink, $item, $order ) {
+		if ( is_admin() || self::$email_order_id || ! self::is_customer_order_details_screen()
+			|| ! is_a( $item, 'WC_Order_Item_Product' ) ) {
+			return $permalink;
+		}
+
+		return PLLC_Access::is_particular_product( $item->get_product_id() ) ? $permalink : '';
+	}
+
 	public static function format_item_name( $product_name, $item, $is_visible ) {
 		if ( ! is_a( $item, 'WC_Order_Item_Product' ) ) {
 			return $product_name;
@@ -423,6 +434,13 @@ class PLLC_Order_Details {
 
 		if ( ! self::is_customer_order_details_screen() ) {
 			return $product_name;
+		}
+
+		// También cubre nombres o imágenes enlazados por plantillas personalizadas.
+		if ( ! PLLC_Access::is_particular_product( $item->get_product_id() ) ) {
+			$allowed_html = wp_kses_allowed_html( 'post' );
+			unset( $allowed_html['a'] );
+			$product_name = wp_kses( $product_name, $allowed_html );
 		}
 
 		$group_key = self::get_group_key( $form_type, $form );
