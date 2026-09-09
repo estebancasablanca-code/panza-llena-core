@@ -39,14 +39,14 @@ class PLLC_Order_Received_Styles {
 [ 'key' => 'overview_radius', 'label' => 'Radio (px)', 'property' => 'border-radius', 'type' => 'number', 'max' => 100 ]
 ] ],
 [ 'title' => 'Bloques «Pedido para…»', 'description' => 'Fondo y forma de los encabezados de grupo.', 'selector' => 'body.woocommerce-order-received.pllc-grouped-order-details .pllc-order-detail-group-header-row > td', 'fields' => [
-[ 'key' => 'group_bg', 'label' => 'Fondo', 'property' => 'background-color', 'type' => 'color' ],
-[ 'key' => 'group_border', 'label' => 'Borde lateral', 'property' => 'border-left-color', 'type' => 'color' ],
+[ 'key' => 'group_bg', 'label' => 'Fondo', 'property' => 'background-color', 'type' => 'color', 'fallback_key' => 'notice_bg' ],
+[ 'key' => 'group_border', 'label' => 'Borde lateral', 'property' => 'border-left-color', 'type' => 'color', 'fallback_key' => 'notice_accent' ],
 [ 'key' => 'group_border_width', 'label' => 'Grosor lateral (px)', 'property' => 'border-left-width', 'type' => 'number', 'max' => 12 ],
 [ 'key' => 'group_radius', 'label' => 'Radio (px)', 'property' => 'border-radius', 'type' => 'number', 'max' => 100 ],
 [ 'key' => 'group_padding', 'label' => 'Espacio interior (px)', 'property' => 'padding', 'type' => 'number', 'max' => 100 ]
 ] ],
 [ 'title' => 'Títulos de cada grupo', 'description' => 'Pedido para ITEO, para cada alumno y para mí.', 'selector' => 'body.woocommerce-order-received.pllc-grouped-order-details .pllc-order-detail-group-header .pllc-cart-group-header', 'fields' => [
-[ 'key' => 'group_title_color', 'label' => 'Color', 'property' => 'color', 'type' => 'color' ],
+[ 'key' => 'group_title_color', 'label' => 'Color', 'property' => 'color', 'type' => 'color', 'fallback_key' => 'cart_group_title_color' ],
 [ 'key' => 'group_title_size', 'label' => 'Tamaño (px)', 'property' => 'font-size', 'type' => 'number', 'max' => 100 ],
 [ 'key' => 'group_title_weight', 'label' => 'Peso (100–900)', 'property' => 'font-weight', 'type' => 'weight', 'max' => 900 ],
 [ 'key' => 'group_title_font', 'label' => 'Familia tipográfica', 'property' => 'font-family', 'type' => 'font' ]
@@ -57,12 +57,12 @@ class PLLC_Order_Received_Styles {
 [ 'key' => 'observations_gap', 'label' => 'Separación superior (px)', 'property' => 'margin-top', 'type' => 'number', 'max' => 100 ]
 ] ],
 [ 'title' => 'Información del grupo y entrega', 'description' => 'Datos del alumno, lugar de entrega y aclaración de facturación.', 'selector' => 'body.woocommerce-order-received.pllc-grouped-order-details .pllc-order-detail-group-header .pllc-cart-group-summary, body.woocommerce-order-received.pllc-grouped-order-details .pllc-order-detail-group-header .pllc-order-group-context', 'fields' => [
-[ 'key' => 'context_color', 'label' => 'Color', 'property' => 'color', 'type' => 'color' ],
+[ 'key' => 'context_color', 'label' => 'Color', 'property' => 'color', 'type' => 'color', 'fallback' => '#555555' ],
 [ 'key' => 'context_size', 'label' => 'Tamaño (px)', 'property' => 'font-size', 'type' => 'number', 'max' => 100 ],
 [ 'key' => 'context_gap', 'label' => 'Separación superior (px)', 'property' => 'margin-top', 'type' => 'number', 'max' => 100 ]
 ] ],
 [ 'title' => 'Etiquetas de días', 'description' => 'Lunes, martes y demás días.', 'selector' => 'body.woocommerce-order-received.pllc-grouped-order-details .woocommerce-table--order-details .pllc-cart-day-label', 'fields' => [
-[ 'key' => 'day_bg', 'label' => 'Fondo', 'property' => 'background-color', 'type' => 'color' ],
+[ 'key' => 'day_bg', 'label' => 'Fondo', 'property' => 'background-color', 'type' => 'color', 'fallback' => '#eef3f6' ],
 [ 'key' => 'day_text', 'label' => 'Texto', 'property' => 'color', 'type' => 'color' ],
 [ 'key' => 'day_size', 'label' => 'Tamaño (px)', 'property' => 'font-size', 'type' => 'number', 'max' => 100 ],
 [ 'key' => 'day_radius', 'label' => 'Radio (px)', 'property' => 'border-radius', 'type' => 'number', 'max' => 999 ],
@@ -89,9 +89,9 @@ class PLLC_Order_Received_Styles {
 [ 'key' => 'total_padding', 'label' => 'Espacio interior (px)', 'property' => 'padding', 'type' => 'number', 'max' => 100 ]
 ] ],
 [ 'title' => 'Aviso de pedido mixto', 'description' => 'Aclaración sobre entregas e importes.', 'selector' => 'body.woocommerce-order-received .woocommerce-order .pllc-mixed-order-notice', 'fields' => [
-[ 'key' => 'mixed_bg', 'label' => 'Fondo', 'property' => 'background-color', 'type' => 'color' ],
+[ 'key' => 'mixed_bg', 'label' => 'Fondo', 'property' => 'background-color', 'type' => 'color', 'fallback' => '#f2f8f4' ],
 [ 'key' => 'mixed_text', 'label' => 'Texto', 'property' => 'color', 'type' => 'color' ],
-[ 'key' => 'mixed_border', 'label' => 'Borde lateral', 'property' => 'border-left-color', 'type' => 'color' ],
+[ 'key' => 'mixed_border', 'label' => 'Borde lateral', 'property' => 'border-left-color', 'type' => 'color', 'fallback' => '#1f6b45' ],
 [ 'key' => 'mixed_size', 'label' => 'Tamaño (px)', 'property' => 'font-size', 'type' => 'number', 'max' => 100 ],
 [ 'key' => 'mixed_padding', 'label' => 'Espacio interior (px)', 'property' => 'padding', 'type' => 'number', 'max' => 100 ],
 [ 'key' => 'mixed_radius', 'label' => 'Radio (px)', 'property' => 'border-radius', 'type' => 'number', 'max' => 100 ]
@@ -109,31 +109,44 @@ class PLLC_Order_Received_Styles {
 
 	public static function render( $settings ) {
 		$values = self::sanitize( $settings['order_received'] ?? [] );
-		echo '<section class="pllc-style-card pllc-style-wide pllc-advanced"><h2>Títulos de WooCommerce y Pedido recibido</h2>';
-		echo '<p>El primer bloque unifica los títulos principales de Carrito, Finalizar compra, Pedido recibido, Mi cuenta y Tienda. Los demás estilos son exclusivos de la confirmación de compra. Un campo vacío conserva el estilo actual del sitio; para volver al estilo heredado, vaciá el campo y guardá.</p>';
-		echo '<p>Las familias tipográficas deben estar cargadas en el sitio (por ejemplo: Roboto, sans-serif). Estas opciones no descargan fuentes.</p>';
-		foreach ( self::schema() as $group ) {
-			echo '<details class="pllc-received-style-group"><summary><strong>' . esc_html( $group['title'] ) . '</strong></summary>';
+		$groups = self::schema();
+		echo '<details class="pllc-style-section"><summary><span><h2>Títulos de WooCommerce</h2><p>Carrito, Finalizar compra, Pedido recibido, Mi cuenta y Tienda.</p></span></summary><div class="pllc-style-section-content">';
+		self::render_groups( array_slice( $groups, 0, 2 ), $values, $settings );
+		echo '</div></details>';
+		echo '<details class="pllc-style-section"><summary><span><h2>Pedido recibido</h2><p>Confirmación, grupos, productos, totales, avisos y direcciones.</p></span></summary><div class="pllc-style-section-content">';
+		echo '<p>Un campo heredado conserva el estilo de Elementor, WooCommerce o del plugin. Las familias tipográficas deben estar cargadas previamente en el sitio.</p>';
+		self::render_groups( array_slice( $groups, 2 ), $values, $settings );
+		echo '</div></details>';
+	}
+
+	private static function render_groups( $groups, $values, $settings ) {
+		foreach ( $groups as $group ) {
+			echo '<details class="pllc-subgroup"><summary><strong>' . esc_html( $group['title'] ) . '</strong></summary>';
 			echo '<p class="description">' . esc_html( $group['description'] ) . '</p><div class="pllc-style-fields">';
 			foreach ( $group['fields'] as $field ) {
 				$key = $field['key'];
 				$value = $values[$key] ?? '';
 				$id = 'pllc-received-' . $key;
+				if ( 'color' === $field['type'] ) {
+					$fallback = $field['fallback'] ?? '';
+					if ( ! empty( $field['fallback_key'] ) && isset( $settings[$field['fallback_key']] ) ) {
+						$fallback = PLLC_Styles::resolved_color_for_admin( $settings[$field['fallback_key']], $fallback );
+					}
+					PLLC_Styles::color_control( $field['label'], 'styles[order_received][' . $key . ']', $id, $value, $fallback, true );
+					continue;
+				}
 				echo '<label for="' . esc_attr( $id ) . '">' . esc_html( $field['label'] ) . '</label>';
 				$common = ' id="' . esc_attr( $id ) . '" name="styles[order_received][' . esc_attr( $key ) . ']" value="' . esc_attr( $value ) . '"';
-				if ( 'color' === $field['type'] ) {
-					echo '<input type="text" class="pllc-color"' . $common . ' placeholder="Heredado">';
-				} elseif ( 'font' === $field['type'] ) {
+				if ( 'font' === $field['type'] ) {
 					echo '<input type="text"' . $common . ' placeholder="Fuente del sitio" maxlength="160">';
 				} else {
 					$min = 'weight' === $field['type'] ? 100 : ( 'font-size' === $field['property'] ? 1 : 0 );
 					$step = 'weight' === $field['type'] ? 100 : 1;
-					echo '<input type="number"' . $common . ' min="' . (int) $min . '" max="' . (int) $field['max'] . '" step="' . (int) $step . '" placeholder="Actual">';
+					echo '<input type="number"' . $common . ' min="' . (int) $min . '" max="' . (int) $field['max'] . '" step="' . (int) $step . '" placeholder="Heredado">';
 				}
 			}
 			echo '</div></details>';
 		}
-		echo '</section>';
 	}
 
 	/** Ignore unknown keys and invalid input; blank values mean no CSS override. */
@@ -147,7 +160,7 @@ class PLLC_Order_Received_Styles {
 				$value = trim( (string) $input[$key] );
 				if ( '' === $value ) { continue; }
 				if ( 'color' === $field['type'] ) {
-					$value = sanitize_hex_color( $value );
+					$value = PLLC_Styles::sanitize_color_value( $value, '', true );
 					if ( ! $value ) { continue; }
 				} elseif ( 'font' === $field['type'] ) {
 					// Restrict CSS syntax, allowing simple names and comma-separated fallbacks.
@@ -182,6 +195,7 @@ class PLLC_Order_Received_Styles {
 			foreach ( $group['fields'] as $field ) {
 				if ( ! array_key_exists( $field['key'], $values ) ) { continue; }
 				$value = $values[$field['key']];
+				if ( 'color' === $field['type'] ) { $value = PLLC_Styles::css_color( $value ); }
 				$unit = 'number' === $field['type'] ? 'px' : '';
 				$declarations .= $field['property'] . ':' . $value . $unit . '!important;';
 				if ( 'border-bottom-width' === $field['property'] ) {
