@@ -18,10 +18,17 @@ jobs:
           php <<'PHP'
           <?php
           define('ABSPATH', __DIR__);
+          define('PLLC_URL', 'https://example.test/wp-content/plugins/panza-llena-core/');
+          define('PLLC_VERSION', 'test');
           require 'includes/class-pllc-order-received-styles.php';
           function sanitize_hex_color($v) { return preg_match('/^#(?:[a-f0-9]{3}|[a-f0-9]{6})$/iD', $v) ? $v : null; }
           function is_order_received_page() { return $GLOBALS['received']; }
+          function is_cart() { return $GLOBALS['cart']; }
+          function is_checkout() { return $GLOBALS['checkout']; }
+          function is_account_page() { return $GLOBALS['account']; }
+          function is_shop() { return $GLOBALS['shop']; }
           function wp_style_is($handle, $state) { return $GLOBALS['enqueued']; }
+          function wp_enqueue_style($handle, $src, $deps, $version) { $GLOBALS['enqueued'] = true; }
           function wp_add_inline_style($handle, $css) { $GLOBALS['css'] .= $css; }
           class PLLC_Styles { public static function get() { return ['order_received' => $GLOBALS['values']]; } }
           function check($condition, $message) { if (!$condition) { throw new RuntimeException($message); } }
@@ -35,9 +42,12 @@ jobs:
           $method->setAccessible(true);
           $keys = [];
           $all = [];
+          $allowed_scopes = ['body.woocommerce-order-received', 'body.woocommerce-cart', 'body.woocommerce-checkout', 'body.woocommerce-account', 'body.post-type-archive-product'];
           foreach ($method->invoke(null) as $group) {
               foreach (explode(', ', $group['selector']) as $selector) {
-                  check(strpos($selector, 'body.woocommerce-order-received') === 0, 'Every selector must be scoped.');
+                  $scoped = false;
+                  foreach ($allowed_scopes as $scope) { $scoped = $scoped || strpos($selector, $scope) === 0; }
+                  check($scoped, 'Every selector must be scoped to an intended WooCommerce page.');
               }
               foreach ($group['fields'] as $field) {
                   check(!isset($keys[$field['key']]), 'Unique field keys.');
@@ -47,6 +57,10 @@ jobs:
           }
           check(count($class::sanitize($all)) === count($all), 'All controls save.');
           $GLOBALS['received'] = true;
+          $GLOBALS['cart'] = false;
+          $GLOBALS['checkout'] = true;
+          $GLOBALS['account'] = false;
+          $GLOBALS['shop'] = false;
           $GLOBALS['enqueued'] = true;
           $GLOBALS['values'] = [];
           $GLOBALS['css'] = '';
@@ -55,14 +69,22 @@ jobs:
           $GLOBALS['values'] = $all;
           $class::frontend_css();
           check(strpos($GLOBALS['css'], 'font-size:12px!important') !== false, 'Generate configured styles.');
+          check(strpos($GLOBALS['css'], 'body.woocommerce-cart .entry-title') !== false, 'Generate shared cart title styles.');
+          check(strpos($GLOBALS['css'], 'margin-top:12px!important') !== false, 'Generate page title margins.');
           check(strpos($GLOBALS['css'], 'display:') === false && strpos($GLOBALS['css'], 'visibility:') === false, 'Never change price visibility.');
           $GLOBALS['css'] = '';
           $GLOBALS['received'] = false;
+          $GLOBALS['checkout'] = false;
           $class::frontend_css();
-          check($GLOBALS['css'] === '', 'No CSS on checkout, cart, account or emails.');
-          $GLOBALS['received'] = true;
+          check($GLOBALS['css'] === '', 'No CSS outside supported WooCommerce pages.');
+          $GLOBALS['cart'] = true;
+          $class::frontend_css();
+          check(strpos($GLOBALS['css'], 'body.woocommerce-cart .entry-title') !== false, 'Generate CSS on cart.');
+          $GLOBALS['cart'] = false;
+          $GLOBALS['account'] = true;
           $GLOBALS['enqueued'] = false;
+          $GLOBALS['css'] = '';
           $class::frontend_css();
-          check($GLOBALS['css'] === '', 'Respect missing frontend stylesheet.');
+          check($GLOBALS['enqueued'] === true && $GLOBALS['css'] !== '', 'Enqueue the stylesheet and generate CSS on My account.');
           echo "Order received style checks passed.\n";
           PHP
