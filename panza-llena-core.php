@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Panza Llena Core
  * Description:       Lógica custom del sitio Panza Llena: roles de cliente, restricción de páginas, y todo lo que Elementor Pro / WooCommerce / plugins gratuitos no resuelven de fábrica.
- * Version:            0.23.48
+ * Version:            0.23.49
  * Requires at least:  6.9
  * Requires PHP:        7.4
  * Author:              Esteban
@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'PLLC_VERSION', '0.23.48' );
+define( 'PLLC_VERSION', '0.23.49' );
 define( 'PLLC_PATH', plugin_dir_path( __FILE__ ) );
 define( 'PLLC_URL', plugin_dir_url( __FILE__ ) );
 
@@ -54,6 +54,7 @@ function pllc_load_modules() {
 	require_once PLLC_PATH . 'includes/class-pllc-code-access.php';
 	require_once PLLC_PATH . 'includes/class-pllc-access.php';
 	require_once PLLC_PATH . 'includes/class-pllc-frontend-assets.php';
+	require_once PLLC_PATH . 'includes/class-pllc-order-received-styles.php';
 	require_once PLLC_PATH . 'includes/class-pllc-styles.php';
 	require_once PLLC_PATH . 'includes/class-pllc-tour.php';
 	require_once PLLC_PATH . 'includes/class-pllc-shortcodes.php';
@@ -68,6 +69,7 @@ function pllc_load_modules() {
 	PLLC_Access::init();
 	PLLC_Frontend_Assets::init();
 	PLLC_Styles::init();
+	PLLC_Order_Received_Styles::init();
 	PLLC_Tour::init();
 	PLLC_Shortcodes::init();
 	PLLC_Cart::init();

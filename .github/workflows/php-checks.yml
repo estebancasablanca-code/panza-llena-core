@@ -1,0 +1,68 @@
+name: PHP checks
+on:
+  pull_request:
+  push:
+    branches:
+      - feat/pedido-recibido-estilos
+permissions:
+  contents: read
+jobs:
+  php:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check PHP syntax
+        run: rg --files -g '*.php' -0 | xargs -0 -n1 php -l
+      - name: Check order received style settings and scope
+        run: |
+          php <<'PHP'
+          <?php
+          define('ABSPATH', __DIR__);
+          require 'includes/class-pllc-order-received-styles.php';
+          function sanitize_hex_color($v) { return preg_match('/^#(?:[a-f0-9]{3}|[a-f0-9]{6})$/iD', $v) ? $v : null; }
+          function is_order_received_page() { return $GLOBALS['received']; }
+          function wp_style_is($handle, $state) { return $GLOBALS['enqueued']; }
+          function wp_add_inline_style($handle, $css) { $GLOBALS['css'] .= $css; }
+          class PLLC_Styles { public static function get() { return ['order_received' => $GLOBALS['values']]; } }
+          function check($condition, $message) { if (!$condition) { throw new RuntimeException($message); } }
+          $class = 'PLLC_Order_Received_Styles';
+          check($class::sanitize([]) === [], 'Empty settings must inherit.');
+          check($class::sanitize(['unknown' => 'red', 'title_color' => ['red'], 'title_font' => 'Arial;display:none', 'day_bg' => 'url(evil)']) === [], 'Reject unknown keys, arrays and CSS injection.');
+          $clean = $class::sanitize(['title_color'=>'#abcdef','title_size'=>'999','group_padding'=>'0','group_title_weight'=>'650','title_font'=>'Exo 2, sans-serif']);
+          check($clean['title_size'] === 100 && $clean['group_padding'] === 0 && $clean['group_title_weight'] === 700, 'Numeric limits and zero spacing.');
+          check($clean['title_font'] === 'Exo 2, sans-serif', 'Font names and fallbacks.');
+          $method = new ReflectionMethod($class, 'schema');
+          $method->setAccessible(true);
+          $keys = [];
+          $all = [];
+          foreach ($method->invoke(null) as $group) {
+              foreach (explode(', ', $group['selector']) as $selector) {
+                  check(strpos($selector, 'body.woocommerce-order-received') === 0, 'Every selector must be scoped.');
+              }
+              foreach ($group['fields'] as $field) {
+                  check(!isset($keys[$field['key']]), 'Unique field keys.');
+                  $keys[$field['key']] = true;
+                  $all[$field['key']] = $field['type'] === 'color' ? '#123456' : ($field['type'] === 'font' ? 'Roboto, sans-serif' : ($field['type'] === 'weight' ? '600' : '12'));
+              }
+          }
+          check(count($class::sanitize($all)) === count($all), 'All controls save.');
+          $GLOBALS['received'] = true;
+          $GLOBALS['enqueued'] = true;
+          $GLOBALS['values'] = [];
+          $GLOBALS['css'] = '';
+          $class::frontend_css();
+          check($GLOBALS['css'] === '', 'No appearance changes by default.');
+          $GLOBALS['values'] = $all;
+          $class::frontend_css();
+          check(strpos($GLOBALS['css'], 'font-size:12px!important') !== false, 'Generate configured styles.');
+          check(strpos($GLOBALS['css'], 'display:') === false && strpos($GLOBALS['css'], 'visibility:') === false, 'Never change price visibility.');
+          $GLOBALS['css'] = '';
+          $GLOBALS['received'] = false;
+          $class::frontend_css();
+          check($GLOBALS['css'] === '', 'No CSS on checkout, cart, account or emails.');
+          $GLOBALS['received'] = true;
+          $GLOBALS['enqueued'] = false;
+          $class::frontend_css();
+          check($GLOBALS['css'] === '', 'Respect missing frontend stylesheet.');
+          echo "Order received style checks passed.\n";
+          PHP
