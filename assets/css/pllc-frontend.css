@@ -1,23 +1,11 @@
-/**
- * Panza Llena - Frontend
- *
- * Estilos mínimos para los estados que agrega el JS (pllc-frontend.js).
- * Son a propósito genéricos y de baja especificidad: cualquier CSS que
- * agregues desde Elementor sobre estas mismas clases los va a pisar sin
- * necesidad de !important.
- */
+/* Panza Llena: estilos de componentes y presentación del pedido. */
 
 .pllc-active {
 	outline: 2px solid currentColor;
 	font-weight: bold;
 }
 
-.pllc-added {
-	opacity: 0.75;
-}
-
 .pllc-disabled {
-	opacity: 0.4;
 	pointer-events: none;
 	cursor: not-allowed;
 }
@@ -45,6 +33,20 @@
 	font-weight: bold;
 }
 
+/* Conserva visible en azul la variante elegida aunque el día esté bloqueado. */
+body.pllc-page-colegios [data-pllc-role="variant"]:checked:disabled {
+	-webkit-appearance: none;
+	appearance: none;
+	width: 13px;
+	height: 13px;
+	margin: 0;
+	flex: 0 0 13px;
+	border: 1px solid var(--pllc-radio, #1683ff);
+	border-radius: 50%;
+	background: radial-gradient(circle at center, var(--pllc-radio, #1683ff) 0 3px, transparent 3.5px);
+	opacity: 1;
+}
+
 .pllc-quantity-stepper input[type="number"] {
 	width: 3em;
 	text-align: center;
@@ -59,6 +61,17 @@
 
 .pllc-qty-btn {
 	cursor: pointer;
+}
+
+/* Página individual Particular: días disponibles en disposición vertical. */
+.pllc-particular-day-options {
+	display: flex;
+	flex-direction: column;
+}
+
+.pllc-particular-day-option {
+	display: flex;
+	align-items: center;
 }
 
 /* Formulario lateral (class-pllc-shortcodes.php > render_order_form) */
@@ -83,6 +96,10 @@
 	border-radius: 4px;
 }
 
+.pllc-particular-observations .pllc-submit-order {
+	width: 100%;
+}
+
 .pllc-inline-option {
 	display: inline-flex;
 	align-items: center;
@@ -90,24 +107,24 @@
 	margin-right: 12px;
 }
 
-.pllc-submit-order {
-	cursor: pointer;
-	padding: 10px 16px;
-	border: none;
-	border-radius: 4px;
-	background-color: #4caf50;
-	color: #fff;
-	font-weight: bold;
+.pllc-submit-order { padding: 10px 16px; }
+
+/* Geometría de las plantillas ITEO existentes; no define colores ni estados. */
+body:is(.pllc-page-iteo-pacientes, .pllc-page-iteo-personal) .pllc-add-btn .elementor-button {
+ width:100%;
+ padding:11px 18px;
 }
 
-.pllc-submit-order:disabled {
-	opacity: 0.6;
-	cursor: not-allowed;
-}
+
 
 .pllc-form-message {
 	color: #c0392b;
 	font-size: 0.9em;
+}
+
+.pllc-form-message.pllc-form-message-info {
+	color: #9a6700;
+	font-weight: 600;
 }
 
 /* Carrito/Checkout agrupado por pedido (class-pllc-cart-groups.php) */
@@ -116,14 +133,19 @@
 	font-weight: bold;
 	font-size: 1.3em;
 	margin-bottom: 4px;
-	padding-top: 10px;
-	border-top: 1px solid #ddd;
+	color: #5bc0de;
 }
 
 .pllc-cart-group-summary {
 	font-size: 0.9em;
 	color: #555;
 	margin-bottom: 10px;
+}
+
+.pllc-kitchen-observations {
+	display: block;
+	margin-top: 5px;
+	white-space: pre-line;
 }
 
 /* El rótulo vacío del pedido (dt "pllc-group-header:") se oculta por
@@ -153,47 +175,454 @@
 	padding: 0 8px;
 }
 
-/* Vista enriquecida de Colegios (Día + nombre propio + precio unitario,
-   ocultando lo nativo que queda duplicado). Solo aplica a filas con la
-   clase que agrega woocommerce_cart_item_class para este tipo de pedido.
-   Usamos visibility:hidden (no display:none) para no correr de lugar el
-   resto de las columnas si la fila está armada con CSS Grid. */
-
-.pllc-form-type-colegios .product-name > a,
-.pllc-form-type-colegios .product-price,
-.pllc-form-type-colegios .product-quantity {
-	visibility: hidden;
-}
-
-/* El encabezado genérico de columnas de WooCommerce no hace falta: cada
-   pedido ya muestra su propio rótulo "Producto / Total". */
-.woocommerce-cart-form thead,
-table.shop_table thead {
-	display: none;
-}
-
 .pllc-cart-day-label {
 	font-weight: 600;
 	margin-top: 6px;
 }
 
-.pllc-cart-product-name a {
-	color: inherit;
-	text-decoration: none;
+/* Botón "Update Cart": solo debe verse si hay productos de Particular en
+   el carrito (son los únicos con cantidad editable) — oculto por defecto,
+   el JS lo muestra si corresponde (toggleUpdateCartButton en pllc-frontend.js). */
+button[name="update_cart"] {
+	display: none;
 }
 
-.pllc-cart-unit-price {
-	font-size: 0.9em;
-	color: #555;
+/* Carrito 100% Colegios: Subtotal y Total muestran el mismo número (no
+   hay envío), así que ocultamos el renglón de Subtotal para no repetirlo.
+   Cubrimos varios nombres de clase posibles porque no tenemos confirmado
+   cuál usa exactamente el widget de Totales de Elementor. */
+body.pllc-colegios-only-cart .cart-subtotal,
+body.pllc-colegios-only-cart tr.cart-subtotal,
+body.pllc-colegios-only-cart .wc-block-components-totals-item--subtotal,
+body.pllc-colegios-only-cart [class*="subtotal" i] {
+	display: none;
 }
 
-.pllc-cart-columns-label {
-	display: flex;
-	justify-content: space-between;
-	font-weight: bold;
-	text-transform: uppercase;
+.pllc-shipping-note {
 	font-size: 0.85em;
-	border-bottom: 1px solid #333;
-	padding-bottom: 6px;
-	margin: 10px 0 4px;
+	color: #555;
+	font-style: italic;
+	margin-bottom: 8px;
 }
+
+/* Fila propia (colspan completo) para "Pedido para..." + resumen, armada
+   por JS (expandGroupHeadersFullWidth) para que ocupe todo el ancho de la
+   tabla en vez de quedar apretada en la columna Producto. El !important
+   es a propósito: las tablas de WooCommerce fuerzan display:block en las
+   celdas dentro de un media query para mobile, y necesitamos ganarle esa
+   regla para que se vea igual de prolijo en los dos tamaños. */
+.pllc-cart-group-header-row td {
+	display: table-cell !important;
+	width: 100% !important;
+	padding: 16px 0 8px !important;
+	border-top: 1px solid #ddd;
+}
+
+.pllc-cart-group-header-row td::before {
+	content: none !important;
+}
+.pllc-student-picker {
+	margin: -4px 0 18px;
+}
+
+.pllc-student-picker-title {
+	display: block;
+	font-weight: 600;
+	margin-bottom: 8px;
+}
+
+.pllc-student-options {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 8px;
+}
+
+.pllc-student-option {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	cursor: pointer;
+}
+
+.pllc-existing-student [data-pllc-field]:disabled {
+	opacity: .72;
+	cursor: not-allowed;
+}
+
+[data-pllc-role="student-name-field"][hidden] {
+	display: none !important;
+}
+
+/* El acceso al carrito debe permanecer visible incluso cuando Elementor
+   tenga activada la opción de ocultarlo al estar vacío. */
+.elementor-widget-woocommerce-menu-cart {
+	display: block !important;
+	visibility: visible !important;
+	opacity: 1 !important;
+}
+
+/* En usuarios ITEO el importe del ícono nunca se muestra. PHP ya entrega
+   "---" desde el HTML inicial y en cada fragmento AJAX; esta regla evita
+   cualquier destello del importe si un widget conserva markup propio. */
+body.pllc-iteo-price-masked .elementor-widget-woocommerce-menu-cart .woocommerce-Price-amount,
+body.pllc-iteo-price-masked .elementor-menu-cart__toggle .woocommerce-Price-amount,
+body.pllc-iteo-price-masked .elementor-button-text .woocommerce-Price-amount {
+	font-size: 0 !important;
+}
+
+body.pllc-iteo-price-masked .elementor-widget-woocommerce-menu-cart .woocommerce-Price-amount::after,
+body.pllc-iteo-price-masked .elementor-menu-cart__toggle .woocommerce-Price-amount::after,
+body.pllc-iteo-price-masked .elementor-button-text .woocommerce-Price-amount::after {
+	content: '---';
+	font-size: 14px;
+}
+
+.elementor-widget-woocommerce-menu-cart .elementor-menu-cart__toggle,
+.elementor-widget-woocommerce-menu-cart .elementor-menu-cart__toggle_button {
+	display: flex !important;
+	visibility: visible !important;
+	opacity: 1 !important;
+}
+
+/* Finalizar compra: agrupación y columna de producto más ancha. */
+body.woocommerce-checkout .woocommerce-checkout-review-order-table { table-layout: auto !important; width: 100% !important; }
+
+/* En pedidos agrupados (Colegios, ITEO o mixtos), los encabezados de
+   columnas quedan flotando sobre los títulos de cada pedido. El título
+   "Tu pedido", los grupos y los importes alineados ya dan el contexto.
+   Se conservan intactos en carritos 100% Particulares. */
+body.woocommerce-checkout.pllc-grouped-order-cart .woocommerce-checkout-review-order-table > thead {
+	display: none !important;
+}
+
+body.woocommerce-checkout .woocommerce-checkout-review-order-table th.product-name,
+body.woocommerce-checkout .woocommerce-checkout-review-order-table td.product-name { width: auto !important; max-width: none !important; }
+body.woocommerce-checkout .woocommerce-checkout-review-order-table th.product-total,
+body.woocommerce-checkout .woocommerce-checkout-review-order-table td.product-total { width: 115px !important; min-width: 115px; white-space: nowrap; }
+.pllc-checkout-group-header { display: block; width: 100% !important; max-width: none !important; box-sizing: border-box; margin: 18px 0 10px; padding-top: 14px; border-top: 1px solid #ddd; }
+tbody tr:first-child .pllc-checkout-group-header { margin-top: 0; padding-top: 0; border-top: 0; }
+.pllc-checkout-product-name { display: block; margin-top: 4px; }
+
+/* ITEO: sin cupón ni referencias a precios/costos. */
+body.woocommerce-checkout.pllc-iteo-price-masked .woocommerce-form-coupon-toggle,
+body.woocommerce-checkout.pllc-iteo-price-masked form.checkout_coupon,
+body.woocommerce-checkout.pllc-iteo-price-masked .e-woocommerce-coupon-nudge,
+body.woocommerce-checkout.pllc-iteo-price-masked [class*="coupon-box" i],
+body.woocommerce-checkout.pllc-iteo-price-masked .woocommerce-checkout-review-order-table th.product-total,
+body.woocommerce-checkout.pllc-iteo-price-masked .woocommerce-checkout-review-order-table td.product-total,
+body.woocommerce-checkout.pllc-iteo-price-masked .woocommerce-checkout-review-order-table tfoot,
+body.woocommerce-checkout.pllc-iteo-price-masked .wc-block-components-totals-wrapper,
+body.woocommerce-checkout.pllc-iteo-price-masked [class*="order-total" i],
+body.woocommerce-checkout.pllc-iteo-price-masked [class*="subtotal" i] { display: none !important; }
+body.woocommerce-checkout.pllc-iteo-price-masked .woocommerce-checkout-review-order-table th.product-name,
+body.woocommerce-checkout.pllc-iteo-price-masked .woocommerce-checkout-review-order-table td.product-name { width: 100% !important; }
+body.woocommerce-checkout.pllc-iteo-price-masked .woocommerce-checkout-review-order-table tr { display: table-row !important; width: 100% !important; }
+
+/* ITEO: en el cuadro final queda solamente Realizar pedido. */
+body.woocommerce-checkout.pllc-iteo-only-cart #payment .wc_payment_methods,
+body.woocommerce-checkout.pllc-iteo-only-cart #payment .woocommerce-privacy-policy-text,
+body.woocommerce-checkout.pllc-iteo-only-cart #payment .woocommerce-terms-and-conditions-wrapper { display: none !important; }
+body.woocommerce-checkout.pllc-iteo-only-cart #payment { background: transparent; }
+body.woocommerce-checkout.pllc-iteo-only-cart #payment .place-order { margin: 0; padding: 0; }
+
+/* Carrito: el día queda arriba y antes del nombre del plato. */
+body.woocommerce-cart .pllc-cart-day-label-before-product { display: block; margin: 0 0 5px; order: -1; }
+
+/* Los productos Particulares conservan enlace, pero visualmente usan el
+   mismo color de nombre que los productos institucionales. */
+body.woocommerce-cart tr.pllc-form-type-particular td.product-name a {
+	color: inherit !important;
+}
+
+/* Gracias / Ver pedido: agrupación equivalente a carrito y checkout. */
+.pllc-mixed-order-notice {
+	margin: 0 0 22px;
+	padding: 14px 16px;
+	background: #f2f8f4;
+	border-left: 4px solid #1f6b45;
+	border-radius: 5px;
+}
+
+.pllc-mixed-order-notice > strong {
+	display: block;
+	margin-bottom: 5px;
+	font-size: 1.08em;
+}
+
+.pllc-mixed-order-notice p {
+	margin: 0;
+	line-height: 1.5;
+}
+
+body.pllc-grouped-order-details .woocommerce-table--order-details {
+	table-layout: fixed !important;
+	width: 100% !important;
+}
+
+body.pllc-grouped-order-details .pllc-order-detail-group-header-row > td {
+	width: 100% !important;
+	padding: 14px 16px !important;
+	background: var(--pllc-notice-bg, #f2f9fc) !important;
+	border-left: 4px solid var(--pllc-notice-accent, #50bde3) !important;
+	border-radius: 6px !important;
+}
+
+body.pllc-grouped-order-details .pllc-order-detail-group-header-row > td::before {
+	content: none !important;
+}
+
+body.pllc-grouped-order-details .pllc-order-detail-group-header .pllc-cart-group-header {
+	font-size: 1.15em;
+	line-height: 1.25;
+}
+
+body.pllc-grouped-order-details .pllc-order-detail-group-header .pllc-cart-group-summary {
+	margin: 5px 0 0;
+	line-height: 1.5;
+}
+
+body.pllc-grouped-order-details .pllc-order-detail-group-header .pllc-order-group-context {
+	margin-top: 5px;
+	color: #555;
+	font-size: .9em;
+	line-height: 1.5;
+}
+
+body.pllc-grouped-order-details .woocommerce-table--order-details .pllc-cart-day-label {
+	display: inline-block;
+	margin: 0 0 7px;
+	padding: 3px 8px;
+	background: #eef3f6;
+	border-radius: 999px;
+	font-size: .82em;
+}
+
+/* Pedido 100% ITEO: el detalle no muestra importes, totales ni pago. */
+body.pllc-iteo-only-order-details .woocommerce-order-overview__total,
+body.pllc-iteo-only-order-details .woocommerce-order-overview__payment-method,
+body.pllc-iteo-only-order-details .woocommerce-order-overview + p,
+body.pllc-iteo-only-order-details .woocommerce-table--order-details th.product-total,
+body.pllc-iteo-only-order-details .woocommerce-table--order-details td.product-total,
+body.pllc-iteo-only-order-details .woocommerce-table--order-details tfoot {
+	display: none !important;
+}
+
+body.pllc-iteo-only-order-details .woocommerce-table--order-details th.product-name,
+body.pllc-iteo-only-order-details .woocommerce-table--order-details td.product-name {
+	width: 100% !important;
+}
+
+/* Checkout: encabezado del pedido en fila propia; precios alineados con platos. */
+body.woocommerce-checkout .pllc-checkout-group-header-row > td {
+	display: table-cell !important;
+	width: 100% !important;
+	max-width: none !important;
+	padding: 18px 0 10px !important;
+	vertical-align: top !important;
+}
+body.woocommerce-checkout .pllc-checkout-group-header-row > td::before { content: none !important; }
+body.woocommerce-checkout .pllc-checkout-group-header-row .pllc-checkout-group-header {
+	margin: 0 !important;
+	padding: 0 !important;
+	border: 0 !important;
+}
+body.woocommerce-checkout .woocommerce-checkout-review-order-table tbody td.product-name,
+body.woocommerce-checkout .woocommerce-checkout-review-order-table tbody td.product-total {
+	vertical-align: top !important;
+	padding-top: 12px !important;
+	padding-bottom: 20px !important;
+}
+body.woocommerce-checkout .woocommerce-checkout-review-order-table tbody td.product-total {
+	text-align: right !important;
+}
+
+/* Checkout agrupado: bloques más legibles y totales estables. Elementor
+   deja que el contenido calcule el ancho de las columnas; al ocultar el
+   encabezado en un carrito mixto, Envío podía quedar dentro de una columna
+   demasiado angosta. La grilla del pie evita ese desplazamiento. */
+body.woocommerce-checkout.pllc-grouped-order-cart .woocommerce-checkout-review-order-table {
+	table-layout: fixed !important;
+}
+
+body.woocommerce-checkout.pllc-grouped-order-cart .woocommerce-checkout-review-order-table tbody tr.pllc-checkout-group-header-row > td {
+	background: var(--pllc-notice-bg, #f2f9fc) !important;
+	border-left: 4px solid var(--pllc-notice-accent, #50bde3) !important;
+	border-radius: 6px !important;
+	padding: 14px 16px !important;
+}
+
+body.woocommerce-checkout.pllc-grouped-order-cart .pllc-checkout-group-header-row .pllc-cart-group-header {
+	font-size: 1.15em;
+	line-height: 1.25;
+	margin-bottom: 5px !important;
+}
+
+body.woocommerce-checkout.pllc-grouped-order-cart .pllc-checkout-group-header-row .pllc-cart-group-summary {
+	font-size: .9em;
+	line-height: 1.5;
+	color: #4f5d66;
+}
+
+body.woocommerce-checkout.pllc-grouped-order-cart .woocommerce-checkout-review-order-table tbody tr:not(.pllc-checkout-group-header-row) > td {
+	background: #fff;
+	border-bottom: 1px solid #e7edf0 !important;
+	padding: 15px 12px 17px !important;
+}
+
+body.woocommerce-checkout.pllc-grouped-order-cart .woocommerce-checkout-review-order-table tbody td.product-name {
+	width: auto !important;
+	line-height: 1.45;
+}
+
+body.woocommerce-checkout.pllc-grouped-order-cart .woocommerce-checkout-review-order-table tbody td.product-total {
+	width: 125px !important;
+	min-width: 125px !important;
+}
+
+body.woocommerce-checkout.pllc-grouped-order-cart .woocommerce-checkout-review-order-table tbody .pllc-cart-day-label {
+	display: inline-block;
+	margin: 0 0 7px;
+	padding: 3px 8px;
+	background: #eef3f6;
+	border-radius: 999px;
+	font-size: .82em;
+	line-height: 1.35;
+}
+
+body.woocommerce-checkout.pllc-grouped-order-cart .woocommerce-checkout-review-order-table tfoot tr {
+	display: grid !important;
+	grid-template-columns: minmax(90px, 1fr) minmax(190px, 55%);
+	column-gap: 18px;
+	align-items: start;
+	width: 100% !important;
+	border-bottom: 1px solid #e7edf0;
+}
+
+body.woocommerce-checkout.pllc-grouped-order-cart .woocommerce-checkout-review-order-table tfoot th,
+body.woocommerce-checkout.pllc-grouped-order-cart .woocommerce-checkout-review-order-table tfoot td {
+	display: block !important;
+	width: auto !important;
+	min-width: 0 !important;
+	max-width: none !important;
+	box-sizing: border-box;
+	padding: 14px 0 !important;
+}
+
+body.woocommerce-checkout.pllc-grouped-order-cart .woocommerce-checkout-review-order-table tfoot th {
+	text-align: left !important;
+}
+
+body.woocommerce-checkout.pllc-grouped-order-cart .woocommerce-checkout-review-order-table tfoot td {
+	text-align: right !important;
+}
+
+body.woocommerce-checkout.pllc-grouped-order-cart .woocommerce-checkout-review-order-table tfoot tr.shipping td {
+	text-align: left !important;
+}
+
+body.woocommerce-checkout.pllc-grouped-order-cart .woocommerce-checkout-review-order-table tfoot tr.pllc-shipping-note-row > td {
+	display: table-cell !important;
+	width: 100% !important;
+	max-width: none !important;
+	padding: 10px 12px !important;
+	background: #fff8e8;
+	border-left: 3px solid #f3a712;
+	border-radius: 5px;
+	text-align: left !important;
+}
+
+body.woocommerce-checkout.pllc-grouped-order-cart .woocommerce-checkout-review-order-table tfoot tr.pllc-shipping-note-row {
+	display: table-row !important;
+	width: 100% !important;
+}
+
+body.woocommerce-checkout .pllc-shipping-note-row .pllc-shipping-note {
+	margin: 0;
+	color: #59636b;
+}
+
+body.woocommerce-cart .cart_totals tr.pllc-shipping-note-row > td {
+	width: 100% !important;
+	padding: 10px 12px !important;
+	background: #fff8e8;
+	border-left: 3px solid #f3a712;
+	border-radius: 5px;
+	text-align: left !important;
+}
+
+body.woocommerce-cart .pllc-shipping-note-row .pllc-shipping-note {
+	margin: 0;
+	color: #59636b;
+}
+
+body.woocommerce-checkout.pllc-grouped-order-cart .woocommerce-checkout-review-order-table tfoot ul#shipping_method {
+	width: 100%;
+	margin: 0;
+	padding: 0;
+}
+
+body.woocommerce-checkout.pllc-grouped-order-cart .woocommerce-checkout-review-order-table tfoot ul#shipping_method li {
+	margin: 0 0 8px;
+	line-height: 1.4;
+}
+
+@media (max-width: 600px) {
+	body.woocommerce-checkout.pllc-grouped-order-cart .woocommerce-checkout-review-order-table tfoot tr {
+		grid-template-columns: 82px minmax(0, 1fr);
+		column-gap: 12px;
+	}
+
+	body.woocommerce-checkout.pllc-grouped-order-cart .woocommerce-checkout-review-order-table tbody td.product-total {
+		width: 92px !important;
+		min-width: 92px !important;
+	}
+}
+
+
+/* Botones: una sola fuente visual, independiente de la página.
+ * Prioridad: normal < hover < acción < acción hover < cargando < deshabilitado.
+ * Los estados pueden estar en el widget o en el control interactivo.
+ */
+:is(a[data-pllc-role="add-btn"], button[data-pllc-role="add-btn"], .pllc-add-btn.elementor-button, .pllc-add-btn .elementor-button, [data-pllc-role="add-btn"] .elementor-button, .pllc-particular-cart-button, .pllc-submit-order) {
+ background:var(--pllc-primary-bg,#8a5800) !important;
+ color:var(--pllc-primary-text,#fff) !important;
+ border:var(--pllc-button-border-width,1px) solid var(--pllc-primary-border,#8a5800) !important;
+ border-radius:var(--pllc-button-radius,10px) !important;
+ min-height:var(--pllc-button-height,44px);
+ font-size:var(--pllc-button-font-size,15px);
+ font-weight:var(--pllc-button-weight,600);
+ box-shadow:none !important; opacity:1; cursor:pointer;
+ transition:background-color .2s ease,color .2s ease,border-color .2s ease;
+}
+:is(a[data-pllc-role="add-btn"], button[data-pllc-role="add-btn"], .pllc-add-btn.elementor-button, .pllc-add-btn .elementor-button, [data-pllc-role="add-btn"] .elementor-button, .pllc-particular-cart-button, .pllc-submit-order):where(:hover) {
+ background:var(--pllc-primary-hover-bg,#fff) !important;
+ color:var(--pllc-primary-hover-text,#8a5800) !important;
+ border-color:var(--pllc-primary-hover-border,#8a5800) !important;
+}
+:is(a[data-pllc-role="add-btn"], button[data-pllc-role="add-btn"], .pllc-add-btn.elementor-button, .pllc-add-btn .elementor-button, [data-pllc-role="add-btn"] .elementor-button, .pllc-particular-cart-button, .pllc-submit-order):where(.pllc-added, .pllc-update-pending, .pllc-added *, .pllc-update-pending *) {
+ background:var(--pllc-action-bg,#f04a24) !important;
+ color:var(--pllc-action-text,#fff) !important;
+ border-color:var(--pllc-action-border,#f04a24) !important;
+}
+:is(a[data-pllc-role="add-btn"], button[data-pllc-role="add-btn"], .pllc-add-btn.elementor-button, .pllc-add-btn .elementor-button, [data-pllc-role="add-btn"] .elementor-button, .pllc-particular-cart-button, .pllc-submit-order):where(.pllc-added:hover, .pllc-update-pending:hover, .pllc-added *:hover, .pllc-update-pending *:hover) {
+ background:var(--pllc-action-hover-bg,#fff) !important;
+ color:var(--pllc-action-hover-text,#f04a24) !important;
+ border-color:var(--pllc-action-hover-border,#f04a24) !important;
+}
+:is(a[data-pllc-role="add-btn"], button[data-pllc-role="add-btn"], .pllc-add-btn.elementor-button, .pllc-add-btn .elementor-button, [data-pllc-role="add-btn"] .elementor-button, .pllc-particular-cart-button, .pllc-submit-order):where(.pllc-particular-cart-button:disabled:not(.pllc-added):not(.pllc-update-pending)) {
+ background:var(--pllc-primary-bg,#8a5800) !important;
+ color:var(--pllc-primary-text,#fff) !important;
+ border-color:var(--pllc-primary-border,#8a5800) !important;
+}
+:is(a[data-pllc-role="add-btn"], button[data-pllc-role="add-btn"], .pllc-add-btn.elementor-button, .pllc-add-btn .elementor-button, [data-pllc-role="add-btn"] .elementor-button, .pllc-particular-cart-button, .pllc-submit-order):where(.pllc-disabled, .pllc-disabled *, [aria-disabled="true"], [aria-disabled="true"] *, .pllc-submit-order:disabled) {
+ background:var(--pllc-disabled-bg,#ddd) !important;
+ color:var(--pllc-disabled-text,#888) !important;
+ border-color:var(--pllc-disabled-border,#ddd) !important;
+}
+:is(a[data-pllc-role="add-btn"], button[data-pllc-role="add-btn"], .pllc-add-btn.elementor-button, .pllc-add-btn .elementor-button, [data-pllc-role="add-btn"] .elementor-button, .pllc-particular-cart-button, .pllc-submit-order):where(.pllc-disabled, .pllc-disabled *, [aria-disabled="true"], .pllc-submit-order:disabled) {cursor:not-allowed;}
+:is(.pllc-add-btn, [data-pllc-role="add-btn"]):not(a):not(button):has(.elementor-button) {
+ border:0 !important; background:transparent !important; box-shadow:none !important; min-height:0; opacity:1;
+}
+:is(a[data-pllc-role="add-btn"], button[data-pllc-role="add-btn"], .pllc-add-btn.elementor-button, .pllc-add-btn .elementor-button, [data-pllc-role="add-btn"] .elementor-button, .pllc-particular-cart-button, .pllc-submit-order) :is(.elementor-button-content-wrapper,.elementor-button-text,.elementor-button-icon,i,svg,svg path) {color:inherit !important;}
+:is(a[data-pllc-role="add-btn"], button[data-pllc-role="add-btn"], .pllc-add-btn.elementor-button, .pllc-add-btn .elementor-button, [data-pllc-role="add-btn"] .elementor-button, .pllc-particular-cart-button, .pllc-submit-order) :is(svg,svg path):not([fill="none"]) {fill:currentColor !important;}

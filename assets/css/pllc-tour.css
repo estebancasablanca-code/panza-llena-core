@@ -1,0 +1,176 @@
+.pllc-tour-launcher {
+	position: fixed;
+	right: 22px;
+	bottom: 22px;
+	z-index: 99990;
+	display: inline-flex;
+	align-items: center;
+	gap: 9px;
+	padding: 11px 16px;
+	border: 0;
+	border-radius: 999px;
+	background: #1578a6;
+	color: #fff;
+	font: inherit;
+	font-size: 14px;
+	font-weight: 700;
+	line-height: 1.2;
+	box-shadow: 0 5px 18px rgba(0, 0, 0, .2);
+	cursor: pointer;
+}
+
+.pllc-tour-launcher:hover,
+.pllc-tour-launcher:focus-visible {
+	background: #0f638b;
+	color: #fff;
+	transform: translateY(-1px);
+}
+
+.pllc-tour-launcher-icon {
+	display: inline-grid;
+	place-items: center;
+	width: 23px;
+	height: 23px;
+	border: 2px solid currentColor;
+	border-radius: 50%;
+	font-size: 15px;
+	font-weight: 800;
+}
+
+.pllc-tour-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 100000;
+	background: rgba(17, 31, 40, .7);
+}
+
+.pllc-tour-overlay[hidden],
+.pllc-tour-dialog[hidden] {
+	display: none !important;
+}
+
+.pllc-tour-highlight {
+	border-radius: 7px;
+	outline: 4px solid #50bde3 !important;
+	outline-offset: 5px;
+	background-color: #fff;
+	box-shadow: 0 0 0 8px rgba(255, 255, 255, .35), 0 10px 35px rgba(0, 0, 0, .28) !important;
+}
+
+.pllc-tour-dialog {
+	position: fixed;
+	z-index: 100003;
+	width: min(390px, calc(100vw - 24px));
+	box-sizing: border-box;
+	padding: 24px;
+	border-radius: 12px;
+	background: #fff;
+	color: #24323b;
+	box-shadow: 0 16px 50px rgba(0, 0, 0, .32);
+}
+
+.pllc-tour-progress {
+	margin: 0 35px 7px 0;
+	color: #1578a6;
+	font-size: 12px;
+	font-weight: 800;
+	letter-spacing: .04em;
+	text-transform: uppercase;
+}
+
+.pllc-tour-dialog h3 {
+	margin: 0 30px 9px 0;
+	color: #172932;
+	font-size: 21px;
+	line-height: 1.25;
+}
+
+.pllc-tour-text {
+	margin: 0;
+	font-size: 15px;
+	line-height: 1.55;
+}
+
+.pllc-tour-close {
+	position: absolute;
+	top: 10px;
+	right: 12px;
+	width: 34px;
+	height: 34px;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: #64737c;
+	font-size: 28px;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.pllc-tour-actions {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	margin-top: 21px;
+}
+
+.pllc-tour-nav {
+	display: flex;
+	gap: 8px;
+}
+
+.pllc-tour-actions button {
+	min-height: 40px;
+	padding: 9px 14px;
+	border-radius: 6px;
+	font: inherit;
+	font-size: 14px;
+	font-weight: 700;
+	cursor: pointer;
+}
+
+.pllc-tour-skip {
+	padding-left: 0 !important;
+	padding-right: 0 !important;
+	border: 0;
+	background: transparent;
+	color: #64737c;
+}
+
+.pllc-tour-previous {
+	border: 1px solid #b9c7ce;
+	background: #fff;
+	color: #334750;
+}
+
+.pllc-tour-next {
+	border: 1px solid #1578a6;
+	background: #1578a6;
+	color: #fff;
+}
+
+body.pllc-tour-open {
+	overflow: hidden;
+}
+
+@media (max-width: 700px) {
+	.pllc-tour-launcher {
+		right: 12px;
+		bottom: 12px;
+		padding: 10px 13px;
+	}
+
+	.pllc-tour-dialog {
+		width: calc(100vw - 24px);
+		padding: 20px;
+	}
+
+	.pllc-tour-actions {
+		align-items: flex-end;
+	}
+
+	.pllc-tour-nav {
+		flex-wrap: wrap;
+		justify-content: flex-end;
+	}
+}

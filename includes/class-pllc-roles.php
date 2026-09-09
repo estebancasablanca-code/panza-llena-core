@@ -49,6 +49,12 @@ class PLLC_Roles {
 	 * ninguno de los 3 roles especiales, se lo trata como "particular".
 	 */
 	public static function get_current_user_roles() {
+		if ( class_exists( 'PLLC_Code_Access' ) ) {
+			$access_role = PLLC_Code_Access::get_role();
+			if ( $access_role ) {
+				return [ $access_role ];
+			}
+		}
 		$user  = wp_get_current_user();
 		$roles = (array) $user->roles;
 

@@ -1,0 +1,558 @@
+.pllc-deliveries-page {
+	max-width: 1600px;
+}
+
+.pllc-deliveries-intro {
+	max-width: 780px;
+	margin: 4px 0 18px;
+	color: #50575e;
+	font-size: 14px;
+}
+
+.pllc-delivery-cards {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(135px, 210px));
+	gap: 12px;
+	margin: 0 0 18px;
+}
+
+.pllc-delivery-card {
+	position: relative;
+	overflow: hidden;
+	padding: 14px 16px;
+	border: 1px solid #dcdcde;
+	border-radius: 7px;
+	background: #fff;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, .04);
+}
+
+.pllc-delivery-card::before {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: 0;
+	width: 4px;
+	background: #8c8f94;
+	content: "";
+}
+
+.pllc-delivery-card--pending::before { background: #dba617; }
+.pllc-delivery-card--prepared::before { background: #2271b1; }
+.pllc-delivery-card--delivered::before { background: #00a32a; }
+
+.pllc-delivery-card span {
+	display: block;
+	margin-bottom: 4px;
+	color: #646970;
+	font-size: 12px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: .04em;
+}
+
+.pllc-delivery-card strong {
+	display: block;
+	color: #1d2327;
+	font-size: 25px;
+	line-height: 1.1;
+}
+
+.pllc-delivery-filters {
+	display: flex;
+	align-items: end;
+	gap: 10px;
+	flex-wrap: wrap;
+	padding: 14px;
+	margin-bottom: 10px;
+	border: 1px solid #dcdcde;
+	border-radius: 7px;
+	background: #fff;
+}
+
+.pllc-delivery-filters label {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.pllc-delivery-filters label > span {
+	color: #50575e;
+	font-size: 12px;
+	font-weight: 600;
+}
+
+.pllc-delivery-filters select,
+.pllc-delivery-filters input {
+	min-width: 155px;
+}
+
+.pllc-delivery-filters .pllc-delivery-search {
+	flex: 1 1 220px;
+}
+
+.pllc-delivery-filters .pllc-delivery-search input {
+	width: 100%;
+}
+
+.pllc-deliveries-table {
+	border-radius: 7px;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, .04);
+}
+
+.pllc-deliveries-table th,
+.pllc-deliveries-table td {
+	vertical-align: top;
+}
+
+.pllc-deliveries-table thead th {
+	font-weight: 600;
+}
+
+.pllc-deliveries-table th:nth-child(2) { width: 125px; }
+.pllc-deliveries-table th:nth-child(3) { width: 150px; }
+.pllc-deliveries-table th:nth-child(4) { width: 150px; }
+.pllc-deliveries-table th:nth-child(5) { width: 180px; }
+.pllc-deliveries-table th:nth-child(7) { width: 110px; }
+
+.pllc-cell-subtitle {
+	display: block;
+	margin-top: 3px;
+	color: #646970;
+	font-size: 12px;
+}
+
+.pllc-status-badge {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 72px;
+	padding: 4px 9px;
+	border-radius: 999px;
+	background: #f0f0f1;
+	color: #3c434a;
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 1.4;
+	white-space: nowrap;
+}
+
+.pllc-status-badge--pending {
+	background: #fcf3d7;
+	color: #755f00;
+}
+
+.pllc-status-badge--prepared {
+	background: #e6f2fb;
+	color: #0a4b78;
+}
+
+.pllc-status-badge--partial {
+	background: #f0e9ff;
+	color: #674399;
+}
+
+.pllc-status-badge--delivered {
+	background: #dff3e4;
+	color: #116329;
+}
+
+.pllc-status-badge--cancelled {
+	background: #f1f1f1;
+	color: #646970;
+}
+
+.pllc-delivery-products summary {
+	cursor: pointer;
+	color: #2271b1;
+	font-weight: 600;
+}
+
+.pllc-delivery-products ul {
+	margin: 8px 0 0 18px;
+}
+
+.pllc-delivery-products li {
+	margin-bottom: 7px;
+}
+
+.pllc-delivery-products li span {
+	display: block;
+	color: #646970;
+	font-size: 12px;
+}
+
+.pllc-no-deliveries {
+	padding: 36px !important;
+	color: #646970;
+	text-align: center;
+}
+
+.pllc-order-deliveries-list {
+	margin: 0;
+}
+
+.pllc-order-deliveries-list li {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	padding: 9px 0;
+	margin: 0;
+	border-bottom: 1px solid #f0f0f1;
+}
+
+.pllc-order-deliveries-list li div span {
+	display: block;
+	margin-top: 2px;
+	color: #646970;
+	font-size: 12px;
+}
+
+.column-pllc_delivery_status {
+	width: 105px;
+}
+
+.column-pllc_order_type {
+	width: 190px;
+}
+
+.pllc-order-type-badge {
+	display: inline-block;
+	padding: 5px 9px;
+	border-radius: 999px;
+	background: #e6f3e9;
+	color: #14532d;
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 1.3;
+}
+
+.pllc-order-type-total-scope {
+	display: block;
+	margin-top: 5px;
+	color: #646970;
+	font-size: 11px;
+}
+
+/* Detalle administrativo uniforme para todas las modalidades. */
+#order_data .pllc-admin-mixed-order-shell {
+	display: grid;
+	grid-template-columns: minmax(245px, 27%) minmax(0, 1fr);
+	gap: 22px;
+	padding: 22px;
+}
+
+#order_data .pllc-admin-mixed-order-shell > .order_data_column {
+	float: none;
+	width: auto;
+	padding: 0;
+}
+
+#order_data .pllc-admin-mixed-order-shell > .clear {
+	display: none;
+}
+
+.pllc-admin-mixed-order-panel {
+	min-width: 0;
+}
+
+.pllc-admin-mixed-order-heading {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	margin: 0 0 12px;
+}
+
+.pllc-admin-mixed-order-heading h3,
+.pllc-admin-order-data-card h4 {
+	margin: 0;
+	color: #1d2327;
+}
+
+.pllc-admin-mixed-order-heading h3 {
+	font-size: 18px;
+}
+
+.pllc-admin-order-data-card h4 {
+	font-size: 14px;
+}
+
+.pllc-admin-mixed-order-cards {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 12px;
+}
+
+.pllc-admin-mixed-order-cards--single {
+	grid-template-columns: minmax(280px, 440px);
+}
+
+.pllc-admin-order-data-card {
+	min-width: 0;
+	padding: 15px;
+	border: 1px solid #dcdcde;
+	border-radius: 5px;
+	background: #fff;
+	box-shadow: 0 1px 2px rgba( 0, 0, 0, .04 );
+}
+
+.pllc-admin-delivery-kind {
+	display: inline-block;
+	margin: 10px 0 12px;
+	padding: 4px 8px;
+	border-radius: 5px;
+	font-size: 11px;
+	font-weight: 600;
+}
+
+.pllc-admin-delivery-kind--institution {
+	background: #e2f3e6;
+	color: #166534;
+}
+
+.pllc-admin-delivery-kind--home {
+	background: #fff0cf;
+	color: #854d0e;
+}
+
+.pllc-admin-data-value,
+.pllc-admin-billing-scope {
+	margin-top: 11px;
+}
+
+.pllc-admin-data-value > strong,
+.pllc-admin-data-value > span,
+.pllc-admin-data-value > a,
+.pllc-admin-billing-scope > strong,
+.pllc-admin-billing-scope > span,
+.pllc-admin-billing-scope > small {
+	display: block;
+}
+
+.pllc-admin-data-value > strong,
+.pllc-admin-billing-scope > strong {
+	margin-bottom: 3px;
+	font-size: 12px;
+}
+
+.pllc-admin-data-value > span,
+.pllc-admin-data-value > a,
+.pllc-admin-billing-scope > span,
+.pllc-admin-address {
+	line-height: 1.5;
+	word-break: break-word;
+}
+
+.pllc-admin-card-note,
+.pllc-admin-billing-scope > small {
+	margin: 13px 0 0;
+	padding-top: 10px;
+	border-top: 1px solid #e5e7eb;
+	color: #646970;
+	font-size: 11px;
+	line-height: 1.45;
+}
+
+.pllc-admin-billing-scope > small {
+	display: block;
+	margin-top: 6px;
+	padding-top: 0;
+	border-top: 0;
+}
+
+.pllc-admin-school-group + .pllc-admin-school-group {
+	margin-top: 12px;
+	padding-top: 12px;
+	border-top: 1px solid #dcdcde;
+}
+
+.pllc-admin-mixed-order-scope {
+	margin: 13px 0 8px;
+	padding: 11px 13px;
+	border-left: 4px solid #1f6b45;
+	background: #f2f8f4;
+	line-height: 1.45;
+}
+
+.pllc-toggle-native-order-data {
+	margin-top: 3px;
+}
+
+.pllc-admin-native-order-data[hidden] {
+	display: none !important;
+}
+
+.pllc-admin-native-order-data {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 18px;
+	margin-top: 14px;
+	padding: 15px;
+	border: 1px solid #dcdcde;
+	background: #f6f7f7;
+}
+
+#order_data .pllc-admin-native-order-data > .order_data_column {
+	float: none;
+	width: auto;
+	padding: 0;
+}
+
+.pllc-admin-action-scope p {
+	margin: 6px 0;
+	line-height: 1.45;
+}
+
+#woocommerce-order-items .woocommerce_order_items tr.pllc-admin-order-group-header > td {
+	padding: 12px 14px !important;
+	border-top: 1px solid #dcdcde;
+	border-bottom: 1px solid #dcdcde;
+	background: #f7f4ed;
+}
+
+.pllc-admin-order-group-header > td > strong,
+.pllc-admin-order-group-summary,
+.pllc-admin-order-group-observations,
+.pllc-admin-order-group-context {
+	display: block;
+}
+
+.pllc-admin-order-group-summary strong,
+.pllc-admin-order-group-observations strong {
+	display: inline;
+}
+
+.pllc-admin-order-group-header > td > strong {
+	color: #1d2327;
+	font-size: 14px;
+}
+
+.pllc-admin-order-group-summary,
+.pllc-admin-order-group-observations,
+.pllc-admin-order-group-context {
+	margin-top: 4px;
+	color: #50575e;
+	font-size: 12px;
+	line-height: 1.45;
+}
+
+.pllc-admin-order-group-observations {
+	white-space: pre-line;
+}
+
+.pllc-admin-order-day {
+	display: block;
+	width: max-content;
+	margin: 0 0 5px;
+	padding: 2px 7px;
+	border-radius: 999px;
+	background: #eef3f6;
+	color: #3c434a;
+	font-size: 11px;
+	font-weight: 600;
+}
+
+#woocommerce-order-items .woocommerce_order_items th.pllc-admin-delivery-status-column,
+#woocommerce-order-items .woocommerce_order_items td.pllc-admin-delivery-status-column {
+	width: 125px;
+	vertical-align: middle;
+	text-align: center;
+}
+
+.pllc-order-item-delivery-link {
+	display: inline-block;
+	text-decoration: none;
+}
+
+.pllc-order-item-delivery-link:focus {
+	border-radius: 999px;
+	box-shadow: 0 0 0 2px #fff, 0 0 0 4px #2271b1;
+	outline: 0;
+}
+
+.pllc-order-item-delivery-link:hover .pllc-status-badge {
+	filter: brightness( .96 );
+}
+
+.pllc-status-badge--none {
+	background: #f0f0f1;
+	color: #646970;
+}
+
+/* En ITEO el cero es técnico: no representa un producto gratuito. */
+#woocommerce-order-items tr.pllc-admin-item-unbilled td.item_cost > .view,
+#woocommerce-order-items tr.pllc-admin-item-unbilled td.line_cost > .view {
+	font-size: 0;
+}
+
+#woocommerce-order-items tr.pllc-admin-item-unbilled td.item_cost > .view::after,
+#woocommerce-order-items tr.pllc-admin-item-unbilled td.line_cost > .view::after {
+	display: inline-block;
+	color: #646970;
+	font-size: 11px;
+	font-style: italic;
+	content: "No facturado";
+}
+
+.pllc-admin-action-scope code {
+	word-break: break-all;
+}
+
+@media (max-width: 1280px) {
+	.pllc-admin-mixed-order-cards {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	.pllc-admin-mixed-order-cards--single {
+		grid-template-columns: minmax(280px, 440px);
+	}
+
+	.pllc-admin-order-data-card--particular {
+		grid-column: 1 / -1;
+	}
+}
+
+@media (max-width: 1100px) {
+	#order_data .pllc-admin-mixed-order-shell {
+		grid-template-columns: 1fr;
+	}
+
+	.pllc-delivery-cards {
+		grid-template-columns: repeat(2, minmax(135px, 1fr));
+	}
+}
+
+@media (max-width: 782px) {
+	.pllc-admin-mixed-order-heading {
+		align-items: flex-start;
+		flex-direction: column;
+	}
+
+	.pllc-admin-mixed-order-cards,
+	.pllc-admin-native-order-data {
+		grid-template-columns: 1fr;
+	}
+
+	.pllc-admin-order-data-card--particular {
+		grid-column: auto;
+	}
+
+	.pllc-delivery-cards {
+		grid-template-columns: 1fr 1fr;
+	}
+
+	.pllc-delivery-filters {
+		align-items: stretch;
+	}
+
+	.pllc-delivery-filters label,
+	.pllc-delivery-filters select,
+	.pllc-delivery-filters input {
+		width: 100%;
+	}
+
+	.pllc-deliveries-table th:nth-child(n) {
+		width: auto;
+	}
+}
