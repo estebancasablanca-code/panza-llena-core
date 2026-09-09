@@ -13,6 +13,23 @@ jobs:
       - uses: actions/checkout@v4
       - name: Check PHP syntax
         run: rg --files -g '*.php' -0 | xargs -0 -n1 php -l
+      - name: Check unified style settings
+        run: |
+          php <<'PHP'
+          <?php
+          define('ABSPATH', __DIR__);
+          function sanitize_hex_color($value) { return preg_match('/^#(?:[a-f0-9]{3}|[a-f0-9]{6})$/iD', $value) ? $value : null; }
+          require 'includes/class-pllc-styles.php';
+          function check($condition, $message) { if (!$condition) { throw new RuntimeException($message); } }
+          $defaults = PLLC_Styles::defaults();
+          check($defaults['cart_group_title_color'] === '#5bc0de', 'Keep the current cart title color by default.');
+          check($defaults['checkout_day_bg'] === '#eef3f6', 'Keep the current checkout day color by default.');
+          check(PLLC_Styles::sanitize_color_value('global:primary', '#000000') === 'global:primary', 'Accept safe Elementor references.');
+          check(PLLC_Styles::sanitize_color_value('global:primary;}body{display:none', '#123456') === '#123456', 'Reject unsafe references.');
+          check(PLLC_Styles::css_color('global:primary', '#f04a24') === 'var(--e-global-color-primary, #f04a24)', 'Generate Elementor CSS variables with fallbacks.');
+          check(count(PLLC_Styles::elementor_colors()) === 6, 'Provide the informed six-color fallback palette.');
+          echo "Unified style checks passed.\n";
+          PHP
       - name: Check order received style settings and scope
         run: |
           php <<'PHP'
@@ -30,11 +47,22 @@ jobs:
           function wp_style_is($handle, $state) { return $GLOBALS['enqueued']; }
           function wp_enqueue_style($handle, $src, $deps, $version) { $GLOBALS['enqueued'] = true; }
           function wp_add_inline_style($handle, $css) { $GLOBALS['css'] .= $css; }
-          class PLLC_Styles { public static function get() { return ['order_received' => $GLOBALS['values']]; } }
+          class PLLC_Styles {
+              public static function get() { return ['order_received' => $GLOBALS['values']]; }
+              public static function sanitize_color_value($value, $fallback='', $allow_empty=false) {
+                  if ($allow_empty && $value === '') { return ''; }
+                  if (preg_match('/^#[a-f0-9]{6}$/iD', $value)) { return strtolower($value); }
+                  return preg_match('/^global:[a-zA-Z0-9_-]{1,80}$/D', $value) ? $value : ($allow_empty ? '' : $fallback);
+              }
+              public static function css_color($value, $fallback='#000000') {
+                  return strpos($value, 'global:') === 0 ? 'var(--e-global-color-' . substr($value, 7) . ', ' . $fallback . ')' : $value;
+              }
+          }
           function check($condition, $message) { if (!$condition) { throw new RuntimeException($message); } }
           $class = 'PLLC_Order_Received_Styles';
           check($class::sanitize([]) === [], 'Empty settings must inherit.');
           check($class::sanitize(['unknown' => 'red', 'title_color' => ['red'], 'title_font' => 'Arial;display:none', 'day_bg' => 'url(evil)']) === [], 'Reject unknown keys, arrays and CSS injection.');
+          check($class::sanitize(['title_color' => 'global:primary'])['title_color'] === 'global:primary', 'Accept safe Elementor global color references.');
           $clean = $class::sanitize(['title_color'=>'#abcdef','title_size'=>'999','group_padding'=>'0','group_title_weight'=>'650','title_font'=>'Exo 2, sans-serif']);
           check($clean['title_size'] === 100 && $clean['group_padding'] === 0 && $clean['group_title_weight'] === 700, 'Numeric limits and zero spacing.');
           check($clean['title_font'] === 'Exo 2, sans-serif', 'Font names and fallbacks.');
