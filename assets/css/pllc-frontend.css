@@ -91,9 +91,9 @@ body.pllc-page-colegios [data-pllc-role="variant"]:checked:disabled {
 .pllc-field input[type="text"],
 .pllc-field select,
 .pllc-field textarea {
-	padding: 8px;
-	border: 1px solid #ccc;
-	border-radius: 4px;
+	padding: var(--pllc-field-padding, 8px);
+	border: var(--pllc-field-border-width, 1px) solid var(--pllc-field-border-color, #ccc);
+	border-radius: var(--pllc-field-radius, 4px);
 }
 
 .pllc-particular-observations .pllc-submit-order {
@@ -118,28 +118,28 @@ body:is(.pllc-page-iteo-pacientes, .pllc-page-iteo-personal) .pllc-add-btn .elem
 
 
 .pllc-form-message {
-	color: #c0392b;
+	color: var(--pllc-form-error-color, #c0392b);
 	font-size: 0.9em;
 }
 
 .pllc-form-message.pllc-form-message-info {
-	color: #9a6700;
+	color: var(--pllc-form-info-color, #9a6700);
 	font-weight: 600;
 }
 
 /* Carrito/Checkout agrupado por pedido (class-pllc-cart-groups.php) */
 
 .pllc-cart-group-header {
-	font-weight: bold;
-	font-size: 1.3em;
-	margin-bottom: 4px;
-	color: #5bc0de;
+	font-weight: var(--pllc-cart-group-title-weight, 700);
+	font-size: var(--pllc-cart-group-title-size, 1.3em);
+	margin-bottom: var(--pllc-cart-group-title-gap, 4px);
+	color: var(--pllc-cart-group-title-color, #5bc0de);
 }
 
 .pllc-cart-group-summary {
-	font-size: 0.9em;
-	color: #555;
-	margin-bottom: 10px;
+	font-size: var(--pllc-cart-summary-size, 0.9em);
+	color: var(--pllc-cart-summary-color, #555);
+	margin-bottom: var(--pllc-cart-summary-gap, 10px);
 }
 
 .pllc-kitchen-observations {
@@ -214,8 +214,8 @@ body.pllc-colegios-only-cart [class*="subtotal" i] {
 .pllc-cart-group-header-row td {
 	display: table-cell !important;
 	width: 100% !important;
-	padding: 16px 0 8px !important;
-	border-top: 1px solid #ddd;
+	padding: var(--pllc-cart-group-padding-top, 16px) 0 var(--pllc-cart-group-padding-bottom, 8px) !important;
+	border-top: 1px solid var(--pllc-cart-separator-color, #ddd);
 }
 
 .pllc-cart-group-header-row td::before {
@@ -365,7 +365,7 @@ body.pllc-grouped-order-details .pllc-order-detail-group-header-row > td {
 	padding: 14px 16px !important;
 	background: var(--pllc-notice-bg, #f2f9fc) !important;
 	border-left: 4px solid var(--pllc-notice-accent, #50bde3) !important;
-	border-radius: 6px !important;
+	border-radius: var(--pllc-checkout-group-radius, 6px) !important;
 }
 
 body.pllc-grouped-order-details .pllc-order-detail-group-header-row > td::before {
@@ -448,26 +448,26 @@ body.woocommerce-checkout.pllc-grouped-order-cart .woocommerce-checkout-review-o
 body.woocommerce-checkout.pllc-grouped-order-cart .woocommerce-checkout-review-order-table tbody tr.pllc-checkout-group-header-row > td {
 	background: var(--pllc-notice-bg, #f2f9fc) !important;
 	border-left: 4px solid var(--pllc-notice-accent, #50bde3) !important;
-	border-radius: 6px !important;
-	padding: 14px 16px !important;
+	border-radius: var(--pllc-checkout-group-radius, 6px) !important;
+	padding: var(--pllc-checkout-group-padding-y, 14px) var(--pllc-checkout-group-padding-x, 16px) !important;
 }
 
 body.woocommerce-checkout.pllc-grouped-order-cart .pllc-checkout-group-header-row .pllc-cart-group-header {
-	font-size: 1.15em;
+	font-size: var(--pllc-checkout-group-title-size, 1.15em);
 	line-height: 1.25;
-	margin-bottom: 5px !important;
+	margin-bottom: var(--pllc-checkout-group-title-gap, 5px) !important;
 }
 
 body.woocommerce-checkout.pllc-grouped-order-cart .pllc-checkout-group-header-row .pllc-cart-group-summary {
-	font-size: .9em;
+	font-size: var(--pllc-checkout-summary-size, .9em);
 	line-height: 1.5;
-	color: #4f5d66;
+	color: var(--pllc-checkout-summary-color, #4f5d66);
 }
 
 body.woocommerce-checkout.pllc-grouped-order-cart .woocommerce-checkout-review-order-table tbody tr:not(.pllc-checkout-group-header-row) > td {
-	background: #fff;
-	border-bottom: 1px solid #e7edf0 !important;
-	padding: 15px 12px 17px !important;
+	background: var(--pllc-checkout-row-bg, #fff);
+	border-bottom: 1px solid var(--pllc-checkout-row-separator, #e7edf0) !important;
+	padding: var(--pllc-checkout-row-padding-top, 15px) var(--pllc-checkout-row-padding-x, 12px) var(--pllc-checkout-row-padding-bottom, 17px) !important;
 }
 
 body.woocommerce-checkout.pllc-grouped-order-cart .woocommerce-checkout-review-order-table tbody td.product-name {
@@ -483,10 +483,10 @@ body.woocommerce-checkout.pllc-grouped-order-cart .woocommerce-checkout-review-o
 body.woocommerce-checkout.pllc-grouped-order-cart .woocommerce-checkout-review-order-table tbody .pllc-cart-day-label {
 	display: inline-block;
 	margin: 0 0 7px;
-	padding: 3px 8px;
-	background: #eef3f6;
-	border-radius: 999px;
-	font-size: .82em;
+	padding: var(--pllc-checkout-day-padding-y, 3px) var(--pllc-checkout-day-padding-x, 8px);
+	background: var(--pllc-checkout-day-bg, #eef3f6);
+	border-radius: var(--pllc-checkout-day-radius, 999px);
+	font-size: var(--pllc-checkout-day-size, .82em);
 	line-height: 1.35;
 }
 
@@ -525,10 +525,10 @@ body.woocommerce-checkout.pllc-grouped-order-cart .woocommerce-checkout-review-o
 	display: table-cell !important;
 	width: 100% !important;
 	max-width: none !important;
-	padding: 10px 12px !important;
-	background: #fff8e8;
-	border-left: 3px solid #f3a712;
-	border-radius: 5px;
+	padding: var(--pllc-shipping-notice-padding-y, 10px) var(--pllc-shipping-notice-padding-x, 12px) !important;
+	background: var(--pllc-shipping-notice-bg, #fff8e8);
+	border-left: 3px solid var(--pllc-shipping-notice-accent, #f3a712);
+	border-radius: var(--pllc-shipping-notice-radius, 5px);
 	text-align: left !important;
 }
 
@@ -539,21 +539,21 @@ body.woocommerce-checkout.pllc-grouped-order-cart .woocommerce-checkout-review-o
 
 body.woocommerce-checkout .pllc-shipping-note-row .pllc-shipping-note {
 	margin: 0;
-	color: #59636b;
+	color: var(--pllc-shipping-notice-text, #59636b);
 }
 
 body.woocommerce-cart .cart_totals tr.pllc-shipping-note-row > td {
 	width: 100% !important;
-	padding: 10px 12px !important;
-	background: #fff8e8;
-	border-left: 3px solid #f3a712;
-	border-radius: 5px;
+	padding: var(--pllc-shipping-notice-padding-y, 10px) var(--pllc-shipping-notice-padding-x, 12px) !important;
+	background: var(--pllc-shipping-notice-bg, #fff8e8);
+	border-left: 3px solid var(--pllc-shipping-notice-accent, #f3a712);
+	border-radius: var(--pllc-shipping-notice-radius, 5px);
 	text-align: left !important;
 }
 
 body.woocommerce-cart .pllc-shipping-note-row .pllc-shipping-note {
 	margin: 0;
-	color: #59636b;
+	color: var(--pllc-shipping-notice-text, #59636b);
 }
 
 body.woocommerce-checkout.pllc-grouped-order-cart .woocommerce-checkout-review-order-table tfoot ul#shipping_method {
