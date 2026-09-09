@@ -391,9 +391,12 @@ class PLLC_Cart {
 				}
 				$added++;
 			}
-		} catch ( RuntimeException $error ) {
+		} catch ( Throwable $error ) {
 			self::restore_cart_snapshot( $cart_snapshot );
-			wp_send_json_error( [ 'message' => $error->getMessage() ] );
+			$message = $error instanceof RuntimeException
+				? $error->getMessage()
+				: 'No se pudo completar el pedido. El carrito no fue modificado.';
+			wp_send_json_error( [ 'message' => $message ] );
 		}
 
 		if ( ! $added && ! $updated && ! $quantity_updated && ! $meal_updated && ! $student_key && ! $has_existing_order ) {
