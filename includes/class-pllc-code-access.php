@@ -8,6 +8,7 @@ class PLLC_Code_Access {
 	const OPTION = 'pllc_code_access';
 	const COOKIE = 'pllc_access';
 	const TTL    = 2592000; // 30 días.
+	private static $internal_validated_add = false;
 
 	const TYPES = [
 		'colegio'       => [ 'label' => 'Colegios', 'page' => 'colegios' ],
@@ -28,7 +29,7 @@ class PLLC_Code_Access {
 		add_action( 'admin_post_nopriv_pllc_leave_access', [ __CLASS__, 'leave_access' ] );
 		add_action( 'admin_post_pllc_leave_access', [ __CLASS__, 'leave_access' ] );
 		add_shortcode( 'pllc_access', [ __CLASS__, 'shortcode' ] );
-		add_filter( 'woocommerce_add_to_cart_validation', [ __CLASS__, 'validate_native_add_to_cart' ], 20, 3 );
+		add_filter( 'woocommerce_add_to_cart_validation', [ __CLASS__, 'validate_native_add_to_cart' ], 20, 5 );
 		add_action( 'wp_enqueue_scripts', [ __CLASS__, 'enqueue_styles' ], 30 );
 		add_action( 'woocommerce_check_cart_items', [ __CLASS__, 'validate_cart_access' ] );
 		add_action( 'wp_footer', [ __CLASS__, 'browser_cleanup_script' ], 99 );
@@ -404,24 +405,66 @@ class PLLC_Code_Access {
 		$roles = PLLC_Roles::get_current_user_roles();
 		$map = [ 'colegios' => 'colegio', 'iteo_personal' => 'iteo_personal', 'iteo_pacientes' => 'iteo_paciente', 'particular' => 'particular' ];
 		$needed = $map[ $form_type ] ?? '';
-		if ( 'particular' === $needed ) { return true; }
+		if ( 'particular' === $needed ) {
+			return ! in_array( 'iteo_paciente', $roles, true );
+		}
 		return $needed && in_array( $needed, $roles, true );
 	}
 
-	public static function validate_native_add_to_cart( $passed, $product_id, $quantity ) {
-		if ( PLLC_Access::is_particular_product( $product_id ) && ! self::form_type_allowed( 'particular' ) ) {
+	public static function validate_native_add_to_cart( $passed, $product_id, $quantity, $variation_id = 0, $variations = [] ) {
+		if ( ! $passed ) {
+			return false;
+		}
+
+		// Los endpoints propios validan el lote completo antes de llamar a
+		// WC_Cart::add_to_cart(). Este filtro protege las demás vías nativas.
+		if ( self::$internal_validated_add ) {
+			return true;
+		}
+
+		$form_type = isset( $_REQUEST['pllc_form_type'] ) ? sanitize_key( wp_unslash( $_REQUEST['pllc_form_type'] ) ) : '';
+		if ( ! $form_type && class_exists( 'PLLC_Order_Rules' ) ) {
+			$form_type = PLLC_Order_Rules::infer_native_form_type( $product_id );
+		}
+		if ( ! $form_type || ! self::form_type_allowed( $form_type ) ) {
 			wc_add_notice( 'Este producto no está disponible para tu tipo de acceso.', 'error' );
 			return false;
 		}
-		return $passed;
+
+		$selection = PLLC_Order_Rules::validate_selection( [
+			'product_id' => $product_id,
+			'variation_id' => $variation_id,
+			'qty' => $quantity,
+			'day' => isset( $_REQUEST['pllc_day'] ) ? wp_unslash( $_REQUEST['pllc_day'] ) : '',
+			'delivery_date' => isset( $_REQUEST['pllc_delivery_date'] ) ? wp_unslash( $_REQUEST['pllc_delivery_date'] ) : '',
+			'meals' => isset( $_REQUEST['pllc_meals'] ) ? (array) wp_unslash( $_REQUEST['pllc_meals'] ) : [],
+		], $form_type );
+		if ( is_wp_error( $selection ) ) {
+			wc_add_notice( $selection->get_error_message(), 'error' );
+			return false;
+		}
+		return true;
+	}
+
+	public static function begin_internal_validated_add() {
+		self::$internal_validated_add = true;
+	}
+
+	public static function end_internal_validated_add() {
+		self::$internal_validated_add = false;
 	}
 
 	public static function validate_cart_access() {
 		if ( ! function_exists( 'WC' ) || ! WC()->cart ) { return; }
 		foreach ( WC()->cart->get_cart() as $item ) {
-			$type = ! empty( $item['pllc_form_type'] ) ? sanitize_key( $item['pllc_form_type'] ) : 'particular';
+			$type = ! empty( $item['pllc_form_type'] ) ? sanitize_key( $item['pllc_form_type'] ) : '';
 			if ( ! self::form_type_allowed( $type ) ) {
 				wc_add_notice( 'Tu acceso actual no permite finalizar uno o más productos del carrito. Ingresá el código correspondiente para continuar.', 'error' );
+				return;
+			}
+			$validated = PLLC_Order_Rules::validate_cart_item( $item );
+			if ( is_wp_error( $validated ) ) {
+				wc_add_notice( $validated->get_error_message(), 'error' );
 				return;
 			}
 		}

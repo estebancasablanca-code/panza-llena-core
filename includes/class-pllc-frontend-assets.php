@@ -81,6 +81,8 @@ class PLLC_Frontend_Assets {
 			'current_form' => self::build_current_form( self::get_current_page_form_type() ),
 			'students'   => self::build_college_students(),
 			'day_titles' => self::build_day_titles(),
+			'day_dates' => class_exists( 'PLLC_Order_Rules' ) ? PLLC_Order_Rules::get_day_dates() : [],
+			'day_availability' => class_exists( 'PLLC_Order_Rules' ) ? PLLC_Order_Rules::get_day_availability() : [],
 			'shipping_note' => self::build_shipping_note(),
 		] );
 
@@ -110,6 +112,10 @@ class PLLC_Frontend_Assets {
 	 * `pllc_current_datetime` (por ejemplo, desde Code Snippets para pruebas).
 	 */
 	private static function build_day_titles() {
+		if ( class_exists( 'PLLC_Order_Rules' ) ) {
+			return PLLC_Order_Rules::get_day_titles();
+		}
+
 		$now = apply_filters( 'pllc_current_datetime', current_datetime() );
 
 		if ( ! $now instanceof DateTimeInterface ) {

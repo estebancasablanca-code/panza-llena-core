@@ -143,6 +143,23 @@
 		return aliases[ value.split( /\s+/ )[0] ] || '';
 	}
 
+	function getDeliveryDate( day ) {
+		return window.PLLC_Data && PLLC_Data.day_dates ? ( PLLC_Data.day_dates[ day ] || '' ) : '';
+	}
+
+	function ensureOperationId( holder ) {
+		if ( holder && holder.dataset.pllcOperationId ) {
+			return holder.dataset.pllcOperationId;
+		}
+		var id = window.crypto && typeof window.crypto.randomUUID === 'function'
+			? window.crypto.randomUUID()
+			: 'pllc-' + Date.now().toString( 36 ) + '-' + Math.random().toString( 36 ).slice( 2 );
+		if ( holder ) {
+			holder.dataset.pllcOperationId = id;
+		}
+		return id;
+	}
+
 	function getCardDay( card ) {
 		if ( ! card ) {
 			return '';
@@ -197,16 +214,26 @@
 			card.querySelectorAll( 'form.cart' ).forEach( function ( form ) {
 				form.setAttribute( 'action', window.location.href );
 				var day = getCardDay( card );
-				var dayInput = form.querySelector( 'input[name="pllc_day"]' );
+					var dayInput = form.querySelector( 'input[name="pllc_day"]' );
+					var dateInput = form.querySelector( 'input[name="pllc_delivery_date"]' );
 				if ( day && ! dayInput ) {
 					dayInput = document.createElement( 'input' );
 					dayInput.type = 'hidden';
 					dayInput.name = 'pllc_day';
 					form.appendChild( dayInput );
 				}
-				if ( dayInput ) {
-					dayInput.value = day;
-				}
+					if ( dayInput ) {
+						dayInput.value = day;
+					}
+					if ( day && ! dateInput ) {
+						dateInput = document.createElement( 'input' );
+						dateInput.type = 'hidden';
+						dateInput.name = 'pllc_delivery_date';
+						form.appendChild( dateInput );
+					}
+					if ( dateInput ) {
+						dateInput.value = getDeliveryDate( day );
+					}
 				form.querySelectorAll( 'button[name="add-to-cart"], .add_to_cart_button, .single_add_to_cart_button' ).forEach( function ( button ) {
 					button.value = productId;
 					button.setAttribute( 'value', productId );
@@ -462,16 +489,18 @@
 		var quantity = elements.input ? Math.max( 1, parseInt( elements.input.value || '1', 10 ) || 1 ) : 1;
 		var payload = new FormData();
 		var updating = !! card.dataset.pllcParticularCartKey;
-		payload.append( 'action', updating ? 'pllc_update_particular_quantity' : 'pllc_add_particular_quantity' );
-		payload.append( 'nonce', PLLC_Data.nonce );
-		payload.append( 'quantity', quantity );
-		appendParticularObservations( payload );
+			payload.append( 'action', updating ? 'pllc_update_particular_quantity' : 'pllc_add_particular_quantity' );
+			payload.append( 'nonce', PLLC_Data.nonce );
+			payload.append( 'quantity', quantity );
+			payload.append( 'operation_id', ensureOperationId( card ) );
+			appendParticularObservations( payload );
 		if ( updating ) {
 			payload.append( 'cart_item_key', card.dataset.pllcParticularCartKey );
-		} else {
-			payload.append( 'product_id', getProductId( card ) );
-			payload.append( 'pllc_day', getCardDay( card ) );
-		}
+			} else {
+				payload.append( 'product_id', getProductId( card ) );
+				payload.append( 'pllc_day', getCardDay( card ) );
+				payload.append( 'pllc_delivery_date', getDeliveryDate( getCardDay( card ) ) );
+			}
 
 		// También cubre tarjetas insertadas por pestañas/carruseles después de iniciar.
 		button.classList.add( 'pllc-particular-cart-button' );
@@ -521,11 +550,37 @@
 
 		button.classList.add( 'pllc-particular-cart-button' );
 		var dayInput = form.querySelector( 'input[name="pllc_day"]' );
+		var dateInput = form.querySelector( 'input[name="pllc_delivery_date"]' );
 		if ( ! dayInput ) {
 			dayInput = document.createElement( 'input' );
 			dayInput.type = 'hidden';
 			dayInput.name = 'pllc_day';
 			form.appendChild( dayInput );
+		}
+		if ( ! dateInput ) {
+			dateInput = document.createElement( 'input' );
+			dateInput.type = 'hidden';
+			dateInput.name = 'pllc_delivery_date';
+			form.appendChild( dateInput );
+		}
+
+		selector.querySelectorAll( '[data-pllc-role="particular-day"]' ).forEach( function ( radio ) {
+			var available = window.PLLC_Data && PLLC_Data.day_availability && PLLC_Data.day_availability[ radio.value ] === true;
+			radio.disabled = ! available;
+			if ( ! available ) {
+				radio.checked = false;
+			}
+			if ( radio.closest( 'label' ) ) {
+				radio.closest( 'label' ).hidden = ! available;
+			}
+		} );
+		var firstAvailable = selector.querySelector( '[data-pllc-role="particular-day"]:not(:disabled)' );
+		if ( firstAvailable && ! selector.querySelector( '[data-pllc-role="particular-day"]:checked:not(:disabled)' ) ) {
+			firstAvailable.checked = true;
+		}
+		if ( ! firstAvailable ) {
+			button.disabled = true;
+			setProductButtonState( button, 'Pedidos cerrados', 'disabled' );
 		}
 
 		selector.querySelectorAll( '[data-pllc-day-label]' ).forEach( function ( label ) {
@@ -558,8 +613,16 @@
 		}
 
 		function loadSelectedDay() {
+			if ( ! selectedDay() ) {
+				dayInput.value = '';
+				dateInput.value = '';
+				button.disabled = true;
+				setProductButtonState( button, 'Pedidos cerrados', 'disabled' );
+				return;
+			}
 			var slots = selectedSlots();
 			dayInput.value = selectedDay();
+			dateInput.value = getDeliveryDate( selectedDay() );
 			delete form.dataset.pllcCartKey;
 			delete form.dataset.pllcExistingQty;
 			if ( slots && slots._default ) {
@@ -590,16 +653,18 @@
 			}
 
 			var payload = new FormData();
-			payload.append( 'action', form.dataset.pllcCartKey ? 'pllc_update_particular_quantity' : 'pllc_add_particular_quantity' );
-			payload.append( 'nonce', PLLC_Data.nonce );
-			payload.append( 'quantity', quantity );
+				payload.append( 'action', form.dataset.pllcCartKey ? 'pllc_update_particular_quantity' : 'pllc_add_particular_quantity' );
+				payload.append( 'nonce', PLLC_Data.nonce );
+				payload.append( 'quantity', quantity );
+				payload.append( 'operation_id', ensureOperationId( form ) );
 			appendParticularObservations( payload );
 			if ( form.dataset.pllcCartKey ) {
 				payload.append( 'cart_item_key', form.dataset.pllcCartKey );
-			} else {
-				payload.append( 'product_id', productId );
-				payload.append( 'pllc_day', selectedDay() );
-			}
+				} else {
+					payload.append( 'product_id', productId );
+					payload.append( 'pllc_day', selectedDay() );
+					payload.append( 'pllc_delivery_date', getDeliveryDate( selectedDay() ) );
+				}
 
 			button.disabled = true;
 			setButtonLabel( button, form.dataset.pllcCartKey ? 'Actualizando…' : 'Agregando…' );
@@ -1740,10 +1805,11 @@
 				if ( ! fresh.length ) {
 					return;
 				}
-				items.push( {
-					product_id: productId,
-					day: getCardDay( card ),
-					meals: Array.prototype.map.call( fresh, function ( c ) {
+					items.push( {
+						product_id: productId,
+						day: getCardDay( card ),
+						delivery_date: getDeliveryDate( getCardDay( card ) ),
+						meals: Array.prototype.map.call( fresh, function ( c ) {
 						return c.dataset.pllcValue;
 					} )
 				} );
@@ -1758,7 +1824,11 @@
 					return;
 				}
 
-				var item = { product_id: productId, day: getCardDay( card ) };
+				var item = {
+					product_id: productId,
+					day: getCardDay( card ),
+					delivery_date: getDeliveryDate( getCardDay( card ) )
+				};
 
 				if ( card.dataset.pllcVariationId ) {
 					item.variation_id = card.dataset.pllcVariationId;
@@ -1822,6 +1892,7 @@
 			updates.push( {
 				product_id: productId,
 				day: getCardDay( card ),
+				delivery_date: getDeliveryDate( getCardDay( card ) ),
 				meals: getCheckedMeals( card )
 			} );
 		} );
@@ -1920,6 +1991,7 @@
 		payload.append( 'updates', JSON.stringify( updates ) );
 		payload.append( 'quantity_updates', JSON.stringify( quantityUpdates ) );
 		payload.append( 'meal_updates', JSON.stringify( mealUpdates ) );
+		payload.append( 'operation_id', ensureOperationId( form ) );
 
 		btn.disabled = true;
 		if ( form.dataset.pllcFormType === 'iteo_personal' ) {
@@ -2129,6 +2201,19 @@
 		} );
 	}
 
+	function hideUnavailableDays() {
+		var availability = window.PLLC_Data && PLLC_Data.day_availability ? PLLC_Data.day_availability : {};
+		document.querySelectorAll( '.pllc-day-wrapper' ).forEach( function ( wrapper ) {
+			Object.keys( availability ).some( function ( day ) {
+				if ( wrapper.classList.contains( 'pllc-day-' + day ) && availability[ day ] !== true ) {
+					wrapper.style.display = 'none';
+					return true;
+				}
+				return false;
+			} );
+		} );
+	}
+
 	/**
 	 * Completa el encabezado de cada bloque con la fecha calculada por
 	 * WordPress. Conserva el widget Encabezado de Elementor existente.
@@ -2276,6 +2361,7 @@
 			window.addEventListener( 'load', function () { window.scrollTo( 0, 0 ); } );
 		}
 
+		hideUnavailableDays();
 		hideEmptyDays();
 		forceQuantityInputStyles();
 		toggleUpdateCartButton();

@@ -154,7 +154,9 @@ class PLLC_Deliveries {
 		$day        = ! empty( $values['pllc_day'] )
 			? sanitize_key( $values['pllc_day'] )
 			: self::detect_product_day( $product_id, $form_type );
-		$date       = self::calculate_delivery_date( $day );
+		$date       = ! empty( $values['pllc_delivery_date'] )
+			? sanitize_text_field( $values['pllc_delivery_date'] )
+			: self::calculate_delivery_date( $day );
 		$destination = self::get_destination( $form_type, $form );
 
 		$item->add_meta_data( '_pllc_form_type', $form_type, true );
