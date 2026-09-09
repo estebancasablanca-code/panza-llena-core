@@ -1,7 +1,7 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
-/** Optional visual overrides for the WooCommerce order-received endpoint only. */
+/** Optional visual overrides for WooCommerce page titles and the order-received endpoint. */
 class PLLC_Order_Received_Styles {
 	public static function init() {
 		// Load before the existing custom CSS so advanced overrides keep their priority.
@@ -10,10 +10,14 @@ class PLLC_Order_Received_Styles {
 
 	private static function schema() {
 		return [
-[ 'title' => 'Títulos', 'description' => 'Pedido recibido, Detalles del pedido y direcciones.', 'selector' => 'body.woocommerce-order-received .woocommerce-order .woocommerce-thankyou-order-received, body.woocommerce-order-received .woocommerce-order h2, body.woocommerce-order-received .entry-title, body.woocommerce-order-received .elementor-widget-theme-post-title .elementor-heading-title', 'fields' => [
+[ 'title' => 'Títulos de WooCommerce', 'description' => 'Carrito, Finalizar compra, Pedido recibido, Mi cuenta y títulos internos de la confirmación.', 'selector' => 'body.woocommerce-order-received .woocommerce-order .woocommerce-thankyou-order-received, body.woocommerce-order-received .woocommerce-order h2, body.woocommerce-cart .entry-title, body.woocommerce-checkout .entry-title, body.woocommerce-account .entry-title, body.post-type-archive-product .woocommerce-products-header__title.page-title, body.woocommerce-cart .elementor-widget-theme-post-title .elementor-heading-title, body.woocommerce-checkout .elementor-widget-theme-post-title .elementor-heading-title, body.woocommerce-account .elementor-widget-theme-post-title .elementor-heading-title', 'fields' => [
 [ 'key' => 'title_color', 'label' => 'Color', 'property' => 'color', 'type' => 'color' ],
 [ 'key' => 'title_size', 'label' => 'Tamaño (px)', 'property' => 'font-size', 'type' => 'number', 'max' => 100 ],
 [ 'key' => 'title_font', 'label' => 'Familia tipográfica', 'property' => 'font-family', 'type' => 'font' ]
+] ],
+[ 'title' => 'Margen del título principal', 'description' => 'Separación exterior del título de cada página; no modifica los subtítulos del pedido.', 'selector' => 'body.woocommerce-cart .entry-title, body.woocommerce-checkout .entry-title, body.woocommerce-account .entry-title, body.post-type-archive-product .woocommerce-products-header__title.page-title, body.woocommerce-cart .elementor-widget-theme-post-title .elementor-heading-title, body.woocommerce-checkout .elementor-widget-theme-post-title .elementor-heading-title, body.woocommerce-account .elementor-widget-theme-post-title .elementor-heading-title', 'fields' => [
+[ 'key' => 'page_title_margin_top', 'label' => 'Margen superior (px)', 'property' => 'margin-top', 'type' => 'number', 'max' => 300 ],
+[ 'key' => 'page_title_margin_bottom', 'label' => 'Margen inferior (px)', 'property' => 'margin-bottom', 'type' => 'number', 'max' => 300 ]
 ] ],
 [ 'title' => 'Textos y enlaces', 'description' => 'Texto general de la confirmación.', 'selector' => 'body.woocommerce-order-received .woocommerce-order', 'fields' => [
 [ 'key' => 'text_color', 'label' => 'Color del texto', 'property' => 'color', 'type' => 'color' ],
@@ -105,8 +109,8 @@ class PLLC_Order_Received_Styles {
 
 	public static function render( $settings ) {
 		$values = self::sanitize( $settings['order_received'] ?? [] );
-		echo '<section class="pllc-style-card pllc-style-wide pllc-advanced"><h2>Pedido recibido</h2>';
-		echo '<p>Estilos exclusivos de la confirmación de compra. Un campo vacío conserva el estilo actual del sitio. Para volver al estilo heredado, vaciá el campo y guardá. No modifica Mi cuenta, correos, carrito ni checkout.</p>';
+		echo '<section class="pllc-style-card pllc-style-wide pllc-advanced"><h2>Títulos de WooCommerce y Pedido recibido</h2>';
+		echo '<p>El primer bloque unifica los títulos principales de Carrito, Finalizar compra, Pedido recibido, Mi cuenta y Tienda. Los demás estilos son exclusivos de la confirmación de compra. Un campo vacío conserva el estilo actual del sitio; para volver al estilo heredado, vaciá el campo y guardá.</p>';
 		echo '<p>Las familias tipográficas deben estar cargadas en el sitio (por ejemplo: Roboto, sans-serif). Estas opciones no descargan fuentes.</p>';
 		foreach ( self::schema() as $group ) {
 			echo '<details class="pllc-received-style-group"><summary><strong>' . esc_html( $group['title'] ) . '</strong></summary>';
@@ -161,8 +165,15 @@ class PLLC_Order_Received_Styles {
 	}
 
 	public static function frontend_css() {
-		if ( ! function_exists( 'is_order_received_page' ) || ! is_order_received_page()
-			|| ! wp_style_is( 'pllc-frontend', 'enqueued' ) ) { return; }
+		$is_supported_page = ( function_exists( 'is_cart' ) && is_cart() )
+			|| ( function_exists( 'is_checkout' ) && is_checkout() )
+			|| ( function_exists( 'is_account_page' ) && is_account_page() )
+			|| ( function_exists( 'is_shop' ) && is_shop() )
+			|| ( function_exists( 'is_order_received_page' ) && is_order_received_page() );
+		if ( ! $is_supported_page ) { return; }
+		if ( ! wp_style_is( 'pllc-frontend', 'enqueued' ) ) {
+			wp_enqueue_style( 'pllc-frontend', PLLC_URL . 'assets/css/pllc-frontend.css', [], PLLC_VERSION );
+		}
 		$settings = PLLC_Styles::get();
 		$values = self::sanitize( $settings['order_received'] ?? [] );
 		$css = '';
