@@ -37,20 +37,35 @@ class PLLC_Cart {
 		if ( ! function_exists( 'WC' ) || ! WC()->cart ) {
 			wp_send_json_error( [ 'message' => 'WooCommerce no está disponible.' ] );
 		}
+		if ( class_exists( 'PLLC_Code_Access' ) && ! PLLC_Code_Access::form_type_allowed( 'particular' ) ) {
+			wp_send_json_error( [ 'message' => 'Tu acceso no habilita productos de Particulares.' ] );
+		}
 
 		$product_id = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
 		$quantity   = isset( $_POST['quantity'] ) ? max( 1, absint( $_POST['quantity'] ) ) : 1;
 		$day        = isset( $_POST['pllc_day'] ) ? sanitize_key( wp_unslash( $_POST['pllc_day'] ) ) : '';
-		$product    = $product_id ? wc_get_product( $product_id ) : false;
-
-		if ( ! $product || ! $product->is_type( 'simple' ) || ! $product->is_purchasable() || ! $product->is_in_stock() ) {
-			wp_send_json_error( [ 'message' => 'Este producto no está disponible para comprar.' ] );
+		$delivery_date = isset( $_POST['pllc_delivery_date'] ) ? sanitize_text_field( wp_unslash( $_POST['pllc_delivery_date'] ) ) : '';
+		$operation_id = self::requested_operation_id();
+		$operation_hash = self::operation_hash( [
+			'type' => 'particular', 'product_id' => $product_id, 'qty' => $quantity,
+			'day' => $day, 'delivery_date' => $delivery_date,
+			'observaciones' => isset( $_POST['observaciones'] ) ? sanitize_textarea_field( wp_unslash( $_POST['observaciones'] ) ) : '',
+		] );
+		$replayed = self::get_processed_operation( $operation_id, $operation_hash );
+		if ( is_wp_error( $replayed ) ) {
+			wp_send_json_error( [ 'message' => $replayed->get_error_message() ] );
 		}
-		if ( ! class_exists( 'PLLC_Access' ) || ! PLLC_Access::is_particular_product( $product_id ) ) {
-			wp_send_json_error( [ 'message' => 'El producto no pertenece a Particulares.' ] );
+		if ( is_array( $replayed ) ) {
+			wp_send_json_success( $replayed );
 		}
-		if ( class_exists( 'PLLC_Code_Access' ) && ! PLLC_Code_Access::form_type_allowed( 'particular' ) ) {
-			wp_send_json_error( [ 'message' => 'Tu acceso no habilita productos de Particulares.' ] );
+		$selection = PLLC_Order_Rules::validate_selection( [
+			'product_id' => $product_id,
+			'qty' => $quantity,
+			'day' => $day,
+			'delivery_date' => $delivery_date,
+		], 'particular' );
+		if ( is_wp_error( $selection ) ) {
+			wp_send_json_error( [ 'message' => $selection->get_error_message() ] );
 		}
 
 		$observations = self::get_requested_particular_observations();
@@ -58,24 +73,22 @@ class PLLC_Cart {
 		$cart_item_data = [
 			'pllc_form_type' => 'particular',
 			'pllc_form'      => [ 'observaciones' => $observations ],
+			'pllc_day'       => $selection['day'],
+			'pllc_delivery_date' => $selection['delivery_date'],
 		];
-		if ( in_array( $day, [ 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado' ], true ) ) {
-			$terms = wc_get_product_terms( $product_id, 'product_cat', [ 'fields' => 'slugs' ] );
-			if ( ! is_wp_error( $terms ) && in_array( 'particulares-' . $day, $terms, true ) ) {
-				$cart_item_data['pllc_day'] = $day;
-			}
-		}
 
-		$cart_key = WC()->cart->add_to_cart( $product_id, $quantity, 0, [], $cart_item_data );
+		$cart_key = self::add_validated_to_cart( $selection['product_id'], $selection['qty'], 0, [], $cart_item_data );
 		if ( ! $cart_key ) {
 			wp_send_json_error( [ 'message' => 'No se pudo agregar el producto al carrito.' ] );
 		}
 		WC()->cart->calculate_totals();
 		WC()->cart->set_session();
-		wp_send_json_success( array_merge(
+		$response = array_merge(
 			[ 'cart_item_key' => $cart_key, 'quantity' => $quantity ],
 			self::get_cart_event_data()
-		) );
+		);
+		self::store_processed_operation( $operation_id, $operation_hash, $response );
+		wp_send_json_success( $response );
 	}
 
 	/**
@@ -102,6 +115,10 @@ class PLLC_Cart {
 		}
 
 		$cart_item_data['pllc_day'] = $day;
+		$date = isset( $_REQUEST['pllc_delivery_date'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['pllc_delivery_date'] ) ) : '';
+		if ( $date ) {
+			$cart_item_data['pllc_delivery_date'] = $date;
+		}
 		return $cart_item_data;
 	}
 
@@ -124,6 +141,15 @@ class PLLC_Cart {
 		$item_type = ! empty( $item['pllc_form_type'] ) ? $item['pllc_form_type'] : 'particular';
 		if ( 'particular' !== $item_type ) {
 			wp_send_json_error( [ 'message' => 'El producto no pertenece a Particulares.' ] );
+		}
+		$validated = PLLC_Order_Rules::validate_selection( [
+			'product_id' => isset( $item['product_id'] ) ? $item['product_id'] : 0,
+			'qty' => $quantity,
+			'day' => isset( $item['pllc_day'] ) ? $item['pllc_day'] : '',
+			'delivery_date' => isset( $item['pllc_delivery_date'] ) ? $item['pllc_delivery_date'] : '',
+		], 'particular' );
+		if ( is_wp_error( $validated ) ) {
+			wp_send_json_error( [ 'message' => $validated->get_error_message() ] );
 		}
 
 		if ( isset( $_POST['observaciones'] ) ) {
@@ -279,6 +305,32 @@ class PLLC_Cart {
 		// envío NO borra lo que ya estaba escrito, solo lo pisa si trae
 		// contenido nuevo.
 		$form_clean = self::merge_with_existing_form( $form_type, $form_submitted_clean );
+		$operation_id = self::requested_operation_id();
+		$operation_hash = self::operation_hash( [
+			'form_type' => $form_type,
+			'student_key' => $student_key,
+			'form' => $form_submitted_clean,
+			'items' => $items,
+			'updates' => $updates,
+			'quantity_updates' => $quantity_updates,
+			'meal_updates' => $meal_updates,
+		] );
+		$replayed = self::get_processed_operation( $operation_id, $operation_hash );
+		if ( is_wp_error( $replayed ) ) {
+			wp_send_json_error( [ 'message' => $replayed->get_error_message() ] );
+		}
+		if ( is_array( $replayed ) ) {
+			wp_send_json_success( $replayed );
+		}
+
+		$prepared = self::prepare_operations( $form_type, $items, $updates, $quantity_updates, $meal_updates, $student_key );
+		if ( is_wp_error( $prepared ) ) {
+			wp_send_json_error( [ 'message' => $prepared->get_error_message() ] );
+		}
+		$items            = $prepared['items'];
+		$updates          = $prepared['updates'];
+		$quantity_updates = $prepared['quantity_updates'];
+		$meal_updates     = $prepared['meal_updates'];
 
 		$slot_error = self::validate_iteo_personal_slots( $form_type, $items, $meal_updates );
 		if ( $slot_error ) {
@@ -291,78 +343,57 @@ class PLLC_Cart {
 		$quantity_updated = 0;
 		$meal_updated = 0;
 
-		foreach ( $updates as $update ) {
-			if ( self::update_existing_variation( $update, $form_type, $student_key, $form_clean ) ) {
+		$cart_snapshot = self::snapshot_cart();
+		try {
+			foreach ( $updates as $update ) {
+				if ( ! self::update_existing_variation( $update, $form_type, $student_key, $form_clean ) ) {
+					throw new RuntimeException( 'No se pudo actualizar uno de los tamaños seleccionados.' );
+				}
 				$updated++;
 			}
-		}
 
-		foreach ( $quantity_updates as $quantity_update ) {
-			if ( self::update_existing_quantity( $quantity_update, $form_type ) ) {
+			foreach ( $quantity_updates as $quantity_update ) {
+				if ( ! self::update_existing_quantity( $quantity_update, $form_type ) ) {
+					throw new RuntimeException( 'No se pudo actualizar una de las cantidades.' );
+				}
 				$quantity_updated++;
 			}
-		}
 
-		foreach ( $meal_updates as $meal_update ) {
-			if ( self::update_existing_meals( $meal_update, $form_type, $form_clean ) ) {
+			foreach ( $meal_updates as $meal_update ) {
+				if ( ! self::update_existing_meals( $meal_update, $form_type, $form_clean ) ) {
+					throw new RuntimeException( 'No se pudo actualizar una selección de Almuerzo/Cena.' );
+				}
 				$meal_updated++;
 			}
-		}
 
-		foreach ( $items as $item ) {
-			$product_id = isset( $item['product_id'] ) ? absint( $item['product_id'] ) : 0;
+			foreach ( $items as $item ) {
+				$cart_item_data = [
+					'pllc_group'     => $group_id,
+					'pllc_form_type' => $form_type,
+					'pllc_form'      => $form_clean,
+					'pllc_day'       => $item['day'],
+					'pllc_delivery_date' => $item['delivery_date'],
+				];
 
-			if ( ! $product_id ) {
-				continue;
-			}
-			if ( 'particular' === $form_type ) {
-				$product = wc_get_product( $product_id );
-				if ( ! $product || ! $product->is_type( 'simple' ) || ! $product->is_purchasable() || ! $product->is_in_stock() ) {
-					continue;
-				}
-				if ( ! class_exists( 'PLLC_Access' ) || ! PLLC_Access::is_particular_product( $product_id ) ) {
-					continue;
-				}
-			}
-
-			$variation_id = ! empty( $item['variation_id'] ) ? absint( $item['variation_id'] ) : 0;
-			$quantity     = ! empty( $item['qty'] ) ? max( 1, absint( $item['qty'] ) ) : 1;
-			$meals        = ( ! empty( $item['meals'] ) && is_array( $item['meals'] ) ) ? array_map( 'sanitize_text_field', $item['meals'] ) : [];
-			$day          = self::normalize_item_day( $item, $form_type, $product_id );
-			if ( 'particular' === $form_type && ! $day ) {
-				continue;
-			}
-
-			// Si eligió Almuerzo Y Cena, van como DOS líneas de carrito
-			// separadas (mismo producto, una comida cada una) en vez de
-			// una sola línea con las dos juntas.
-			if ( $meals ) {
-				foreach ( $meals as $meal ) {
-					$cart_item_data = [
-						'pllc_group'     => $group_id,
-						'pllc_form_type' => $form_type,
-						'pllc_form'      => $form_clean,
-						'pllc_meals'     => [ $meal ],
-						'pllc_day'       => $day,
-					];
-
-					if ( WC()->cart->add_to_cart( $product_id, $quantity, $variation_id, [], $cart_item_data ) ) {
+				if ( $item['meals'] ) {
+					foreach ( $item['meals'] as $meal ) {
+						$cart_item_data['pllc_meals'] = [ $meal ];
+						if ( ! self::add_validated_to_cart( $item['product_id'], $item['qty'], $item['variation_id'], [], $cart_item_data ) ) {
+							throw new RuntimeException( 'No se pudo agregar uno de los productos seleccionados.' );
+						}
 						$added++;
 					}
+					continue;
 				}
-				continue;
-			}
 
-			$cart_item_data = [
-				'pllc_group'     => $group_id,
-				'pllc_form_type' => $form_type,
-				'pllc_form'      => $form_clean,
-				'pllc_day'       => $day,
-			];
-
-			if ( WC()->cart->add_to_cart( $product_id, $quantity, $variation_id, [], $cart_item_data ) ) {
+				if ( ! self::add_validated_to_cart( $item['product_id'], $item['qty'], $item['variation_id'], [], $cart_item_data ) ) {
+					throw new RuntimeException( 'No se pudo agregar uno de los productos seleccionados.' );
+				}
 				$added++;
 			}
+		} catch ( RuntimeException $error ) {
+			self::restore_cart_snapshot( $cart_snapshot );
+			wp_send_json_error( [ 'message' => $error->getMessage() ] );
 		}
 
 		if ( ! $added && ! $updated && ! $quantity_updated && ! $meal_updated && ! $student_key && ! $has_existing_order ) {
@@ -374,13 +405,15 @@ class PLLC_Cart {
 		}
 		self::sync_form_across_existing_items( $form_type, $form_clean );
 
-		wp_send_json_success( array_merge( [
+		$response = array_merge( [
 			'added'    => $added,
 			'updated'  => $updated,
 			'quantity_updated' => $quantity_updated,
 			'meal_updated' => $meal_updated,
 			'group_id' => $group_id,
-		], self::get_cart_event_data() ) );
+		], self::get_cart_event_data() );
+		self::store_processed_operation( $operation_id, $operation_hash, $response );
+		wp_send_json_success( $response );
 	}
 
 	/** Datos estándar del evento WooCommerce `added_to_cart` que escucha Elementor. */
@@ -402,6 +435,232 @@ class PLLC_Cart {
 			'fragments' => $fragments,
 			'cart_hash' => WC()->cart->get_cart_hash(),
 		];
+	}
+
+	/** Normaliza y autoriza todo el lote antes de tocar el carrito. */
+	private static function prepare_operations( $form_type, $items, $updates, $quantity_updates, $meal_updates, $student_key ) {
+		$prepared = [ 'items' => [], 'updates' => [], 'quantity_updates' => [], 'meal_updates' => [] ];
+
+		foreach ( $items as $item ) {
+			if ( ! is_array( $item ) ) {
+				return new WP_Error( 'pllc_invalid_item', 'Uno de los productos enviados no es válido.' );
+			}
+			$selection = PLLC_Order_Rules::validate_selection( $item, $form_type );
+			if ( is_wp_error( $selection ) ) {
+				return $selection;
+			}
+			$prepared['items'][] = $selection;
+		}
+
+		foreach ( $updates as $update ) {
+			$validated = self::validate_variation_update_request( $update, $form_type, $student_key );
+			if ( is_wp_error( $validated ) ) {
+				return $validated;
+			}
+			$prepared['updates'][] = $validated;
+		}
+
+		foreach ( $quantity_updates as $update ) {
+			$validated = self::validate_quantity_update_request( $update, $form_type );
+			if ( is_wp_error( $validated ) ) {
+				return $validated;
+			}
+			$prepared['quantity_updates'][] = $validated;
+		}
+
+		foreach ( $meal_updates as $update ) {
+			$validated = self::validate_meal_update_request( $update, $form_type );
+			if ( is_wp_error( $validated ) ) {
+				return $validated;
+			}
+			$prepared['meal_updates'][] = $validated;
+		}
+
+		$duplicate_error = self::validate_new_iteo_slots_are_new( $form_type, $prepared['items'], $prepared['meal_updates'] );
+		return $duplicate_error ? $duplicate_error : $prepared;
+	}
+
+	private static function validate_variation_update_request( $update, $form_type, $student_key ) {
+		if ( 'colegios' !== $form_type || ! $student_key || ! is_array( $update ) ) {
+			return new WP_Error( 'pllc_invalid_variation_update', 'La actualización de tamaño no es válida.' );
+		}
+		$cart_key = isset( $update['cart_item_key'] ) ? sanitize_text_field( $update['cart_item_key'] ) : '';
+		$item = $cart_key ? WC()->cart->get_cart_item( $cart_key ) : [];
+		$form = ! empty( $item['pllc_form'] ) && is_array( $item['pllc_form'] ) ? $item['pllc_form'] : [];
+		if ( ! $item || empty( $item['product_id'] ) || empty( $item['pllc_form_type'] ) || 'colegios' !== $item['pllc_form_type']
+			|| ! hash_equals( self::build_student_hash( $form ), $student_key ) ) {
+			return new WP_Error( 'pllc_invalid_variation_update', 'No se encontró el producto escolar que querés actualizar.' );
+		}
+
+		$validated = PLLC_Order_Rules::validate_selection( [
+			'product_id' => $item['product_id'],
+			'variation_id' => isset( $update['variation_id'] ) ? $update['variation_id'] : 0,
+			'qty' => 1,
+			'day' => isset( $item['pllc_day'] ) ? $item['pllc_day'] : '',
+			'delivery_date' => isset( $item['pllc_delivery_date'] ) ? $item['pllc_delivery_date'] : '',
+		], 'colegios' );
+		if ( is_wp_error( $validated ) ) {
+			return $validated;
+		}
+		return [ 'cart_item_key' => $cart_key, 'variation_id' => $validated['variation_id'] ];
+	}
+
+	private static function validate_quantity_update_request( $update, $form_type ) {
+		if ( ! in_array( $form_type, [ 'iteo_pacientes', 'particular' ], true ) || ! is_array( $update ) ) {
+			return new WP_Error( 'pllc_invalid_quantity_update', 'La actualización de cantidad no es válida.' );
+		}
+		$cart_key = isset( $update['cart_item_key'] ) ? sanitize_text_field( $update['cart_item_key'] ) : '';
+		$item = $cart_key ? WC()->cart->get_cart_item( $cart_key ) : [];
+		$quantity = isset( $update['qty'] ) ? max( 0, absint( $update['qty'] ) ) : 0;
+		if ( ! $item || empty( $item['product_id'] ) || empty( $item['pllc_form_type'] ) || $form_type !== $item['pllc_form_type']
+			|| ( ! empty( $update['product_id'] ) && absint( $update['product_id'] ) !== absint( $item['product_id'] ) ) ) {
+			return new WP_Error( 'pllc_invalid_quantity_update', 'No se encontró el producto que querés actualizar.' );
+		}
+		if ( $quantity > 0 ) {
+			$validated = PLLC_Order_Rules::validate_selection( [
+				'product_id' => $item['product_id'],
+				'variation_id' => isset( $item['variation_id'] ) ? $item['variation_id'] : 0,
+				'qty' => $quantity,
+				'day' => isset( $item['pllc_day'] ) ? $item['pllc_day'] : '',
+				'delivery_date' => isset( $item['pllc_delivery_date'] ) ? $item['pllc_delivery_date'] : '',
+			], $form_type );
+			if ( is_wp_error( $validated ) ) {
+				return $validated;
+			}
+		}
+		return [ 'cart_item_key' => $cart_key, 'product_id' => absint( $item['product_id'] ), 'qty' => $quantity ];
+	}
+
+	private static function validate_meal_update_request( $update, $form_type ) {
+		if ( 'iteo_personal' !== $form_type || ! is_array( $update ) ) {
+			return new WP_Error( 'pllc_invalid_meal_update', 'La actualización de Almuerzo/Cena no es válida.' );
+		}
+		$product_id = isset( $update['product_id'] ) ? absint( $update['product_id'] ) : 0;
+		$day = isset( $update['day'] ) ? sanitize_key( $update['day'] ) : '';
+		$meals = isset( $update['meals'] ) && is_array( $update['meals'] )
+			? array_values( array_unique( array_map( 'sanitize_key', $update['meals'] ) ) ) : [];
+		if ( array_diff( $meals, [ 'almuerzo', 'cena' ] ) ) {
+			return new WP_Error( 'pllc_invalid_meal', 'La selección de Almuerzo/Cena no es válida.' );
+		}
+
+		$template = [];
+		foreach ( WC()->cart->get_cart() as $item ) {
+			if ( ! empty( $item['pllc_form_type'] ) && 'iteo_personal' === $item['pllc_form_type']
+				&& absint( $item['product_id'] ) === $product_id && ! empty( $item['pllc_day'] ) && $day === $item['pllc_day'] ) {
+				$template = $item;
+				break;
+			}
+		}
+		if ( ! $template ) {
+			return new WP_Error( 'pllc_invalid_meal_update', 'No se encontró el plato de Almuerzo/Cena que querés actualizar.' );
+		}
+		if ( $meals ) {
+			$validated = PLLC_Order_Rules::validate_selection( [
+				'product_id' => $product_id,
+				'qty' => 1,
+				'meals' => $meals,
+				'day' => $day,
+				'delivery_date' => isset( $template['pllc_delivery_date'] ) ? $template['pllc_delivery_date'] : '',
+			], 'iteo_personal' );
+			if ( is_wp_error( $validated ) ) {
+				return $validated;
+			}
+		}
+		return [
+			'product_id' => $product_id,
+			'day' => $day,
+			'delivery_date' => isset( $template['pllc_delivery_date'] ) ? $template['pllc_delivery_date'] : '',
+			'meals' => $meals,
+		];
+	}
+
+	private static function validate_new_iteo_slots_are_new( $form_type, $items, $meal_updates ) {
+		if ( 'iteo_personal' !== $form_type ) {
+			return null;
+		}
+		$occupied = [];
+		foreach ( WC()->cart->get_cart() as $cart_item ) {
+			if ( ! empty( $cart_item['pllc_form_type'] ) && 'iteo_personal' === $cart_item['pllc_form_type'] && ! empty( $cart_item['pllc_meals'][0] ) ) {
+				$occupied[ sanitize_key( $cart_item['pllc_day'] ) . '|' . sanitize_key( $cart_item['pllc_meals'][0] ) ] = true;
+			}
+		}
+		foreach ( $meal_updates as $update ) {
+			foreach ( [ 'almuerzo', 'cena' ] as $meal ) {
+				unset( $occupied[ $update['day'] . '|' . $meal ] );
+			}
+			foreach ( $update['meals'] as $meal ) {
+				$occupied[ $update['day'] . '|' . $meal ] = true;
+			}
+		}
+		foreach ( $items as $item ) {
+			foreach ( $item['meals'] as $meal ) {
+				$key = $item['day'] . '|' . $meal;
+				if ( isset( $occupied[ $key ] ) ) {
+					return new WP_Error( 'pllc_duplicate_slot', 'Ese Almuerzo/Cena ya está en el carrito. Recargá la página antes de volver a enviarlo.' );
+				}
+				$occupied[ $key ] = true;
+			}
+		}
+		return null;
+	}
+
+	private static function snapshot_cart() {
+		return [
+			'cart_contents' => WC()->cart->cart_contents,
+			'removed_cart_contents' => isset( WC()->cart->removed_cart_contents ) ? WC()->cart->removed_cart_contents : [],
+		];
+	}
+
+	private static function add_validated_to_cart( $product_id, $quantity, $variation_id, $variation, $cart_item_data ) {
+		PLLC_Code_Access::begin_internal_validated_add();
+		try {
+			return WC()->cart->add_to_cart( $product_id, $quantity, $variation_id, $variation, $cart_item_data );
+		} finally {
+			PLLC_Code_Access::end_internal_validated_add();
+		}
+	}
+
+	private static function restore_cart_snapshot( $snapshot ) {
+		WC()->cart->cart_contents = $snapshot['cart_contents'];
+		if ( isset( WC()->cart->removed_cart_contents ) ) {
+			WC()->cart->removed_cart_contents = $snapshot['removed_cart_contents'];
+		}
+		WC()->cart->calculate_totals();
+		WC()->cart->set_session();
+	}
+
+	private static function requested_operation_id() {
+		$id = isset( $_POST['operation_id'] ) ? sanitize_text_field( wp_unslash( $_POST['operation_id'] ) ) : '';
+		return preg_match( '/^[a-zA-Z0-9_-]{16,80}$/', $id ) ? $id : '';
+	}
+
+	private static function operation_hash( $payload ) {
+		return hash( 'sha256', wp_json_encode( $payload ) );
+	}
+
+	private static function get_processed_operation( $operation_id, $operation_hash ) {
+		if ( ! $operation_id || ! WC()->session ) {
+			return null;
+		}
+		$operations = WC()->session->get( 'pllc_processed_operations', [] );
+		if ( empty( $operations[ $operation_id ] ) ) {
+			return null;
+		}
+		if ( ! hash_equals( $operations[ $operation_id ]['hash'], $operation_hash ) ) {
+			return new WP_Error( 'pllc_operation_mismatch', 'El contenido del pedido cambió durante un reintento. Volvé a enviarlo.' );
+		}
+		return $operations[ $operation_id ]['response'];
+	}
+
+	private static function store_processed_operation( $operation_id, $operation_hash, $response ) {
+		if ( ! $operation_id || ! WC()->session ) {
+			return;
+		}
+		$operations = WC()->session->get( 'pllc_processed_operations', [] );
+		$operations[ $operation_id ] = [ 'hash' => $operation_hash, 'response' => $response, 'time' => time() ];
+		uasort( $operations, function ( $a, $b ) { return $a['time'] <=> $b['time']; } );
+		$operations = array_slice( $operations, -20, null, true );
+		WC()->session->set( 'pllc_processed_operations', $operations );
 	}
 
 	private static function normalize_item_day( $item, $form_type, $product_id ) {
@@ -553,13 +812,8 @@ class PLLC_Cart {
 		}
 
 		$changed = false;
-		foreach ( $existing as $meal => $cart_key ) {
-			if ( ! in_array( $meal, $requested, true ) ) {
-				WC()->cart->remove_cart_item( $cart_key );
-				$changed = true;
-			}
-		}
-
+		// Primero incorpora las líneas nuevas. Si alguna falla, el manejador
+		// restaura el snapshot completo y ninguna selección anterior se pierde.
 		foreach ( $requested as $meal ) {
 			if ( isset( $existing[ $meal ] ) ) {
 				continue;
@@ -570,11 +824,22 @@ class PLLC_Cart {
 				'pllc_form'      => $form_clean,
 				'pllc_meals'     => [ $meal ],
 				'pllc_day'       => $day ? $day : ( isset( $template['pllc_day'] ) ? $template['pllc_day'] : '' ),
+				'pllc_delivery_date' => isset( $template['pllc_delivery_date'] ) ? $template['pllc_delivery_date'] : '',
 			];
 			$variation_id = isset( $template['variation_id'] ) ? absint( $template['variation_id'] ) : 0;
 			$variation    = ( $variation_id && ! empty( $template['variation'] ) && is_array( $template['variation'] ) ) ? $template['variation'] : [];
 
-			if ( WC()->cart->add_to_cart( $product_id, 1, $variation_id, $variation, $cart_item_data ) ) {
+			if ( ! self::add_validated_to_cart( $product_id, 1, $variation_id, $variation, $cart_item_data ) ) {
+				return false;
+			}
+			$changed = true;
+		}
+
+		foreach ( $existing as $meal => $cart_key ) {
+			if ( ! in_array( $meal, $requested, true ) ) {
+				if ( ! WC()->cart->remove_cart_item( $cart_key ) ) {
+					return false;
+				}
 				$changed = true;
 			}
 		}
@@ -660,7 +925,7 @@ class PLLC_Cart {
 		}
 		$cart_item_data['pllc_form'] = $form_clean;
 
-		$new_key = WC()->cart->add_to_cart(
+		$new_key = self::add_validated_to_cart(
 			absint( $cart_item['product_id'] ),
 			max( 1, absint( $cart_item['quantity'] ) ),
 			$variation_id,

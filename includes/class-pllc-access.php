@@ -52,6 +52,12 @@ class PLLC_Access {
 			return;
 		}
 
+		if ( function_exists( 'is_shop' ) && is_shop()
+			&& in_array( 'iteo_paciente', PLLC_Roles::get_current_user_roles(), true ) ) {
+			wp_safe_redirect( home_url( '/iteo-pacientes/' ) );
+			exit;
+		}
+
 		if ( ! is_page() ) {
 			return;
 		}
@@ -72,14 +78,14 @@ class PLLC_Access {
 	}
 
 	/**
-	 * Los productos de Particulares pueden abrirse desde cualquier tipo de
-	 * acceso. Los productos institucionales vuelven a su catálogo correspondiente.
+	 * Los productos de Particulares admiten visitante, Colegios e ITEO Personal.
+	 * ITEO Pacientes permanece aislado; los institucionales vuelven a su catálogo.
 	 */
 	private static function restrict_single_product() {
 		$product_id = get_queried_object_id();
 		$user_roles = PLLC_Roles::get_current_user_roles();
 
-		if ( self::is_particular_product( $product_id ) ) {
+		if ( self::is_particular_product( $product_id ) && ! in_array( 'iteo_paciente', $user_roles, true ) ) {
 			return;
 		}
 
@@ -155,12 +161,18 @@ class PLLC_Access {
 	}
 
 	private static function is_elementor_edit_context() {
+		if ( ! is_user_logged_in() ) {
+			return false;
+		}
+
 		if ( isset( $_GET['elementor-preview'] ) ) {
-			return true;
+			$post_id = absint( wp_unslash( $_GET['elementor-preview'] ) );
+			return $post_id && current_user_can( 'edit_post', $post_id );
 		}
 
 		if ( class_exists( '\Elementor\Plugin' )
-			&& \Elementor\Plugin::$instance->editor->is_edit_mode() ) {
+			&& \Elementor\Plugin::$instance->editor->is_edit_mode()
+			&& current_user_can( 'edit_posts' ) ) {
 			return true;
 		}
 
