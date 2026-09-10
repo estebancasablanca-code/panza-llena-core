@@ -23,6 +23,8 @@ jobs:
         run: php tests/checkout-notes.php
       - name: Check reported UI regressions
         run: php tests/ui-regressions.php
+      - name: Check catalog access rules
+        run: php tests/access-rules.php
       - name: Check JavaScript syntax
         run: |
           node --check assets/js/pllc-frontend.js

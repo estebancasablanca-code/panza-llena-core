@@ -406,7 +406,7 @@ class PLLC_Code_Access {
 		$map = [ 'colegios' => 'colegio', 'iteo_personal' => 'iteo_personal', 'iteo_pacientes' => 'iteo_paciente', 'particular' => 'particular' ];
 		$needed = $map[ $form_type ] ?? '';
 		if ( 'particular' === $needed ) {
-			return ! in_array( 'iteo_paciente', $roles, true );
+			return true;
 		}
 		return $needed && in_array( $needed, $roles, true );
 	}

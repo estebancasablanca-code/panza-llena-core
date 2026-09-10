@@ -117,7 +117,7 @@ class PLLC_Tour {
 					[
 						'selector' => '[data-pllc-role="add-btn"]',
 						'title'    => 'Confirmá el plato',
-						'text'     => 'Presioná “Agregar al pedido”. El botón cambiará de estado para mostrarte qué quedó seleccionado.',
+						'text'     => 'Presioná “Seleccionar”. El botón cambiará de estado para mostrarte qué quedó seleccionado.',
 					],
 					$common_finish,
 				];
@@ -137,7 +137,7 @@ class PLLC_Tour {
 					[
 						'selector' => '[data-pllc-role="add-btn"]',
 						'title'    => 'Confirmá cada elección',
-						'text'     => 'Después de marcar Almuerzo o Cena, presioná “Agregar al pedido”. El botón te mostrará si el plato quedó confirmado o necesita un cambio.',
+						'text'     => 'Después de marcar Almuerzo o Cena, presioná “Seleccionar”. El botón te mostrará si el plato quedó confirmado o necesita un cambio.',
 					],
 					[
 						'selector' => '[data-pllc-field="observaciones"]',
@@ -162,7 +162,7 @@ class PLLC_Tour {
 					[
 						'selector' => '[data-pllc-role="add-btn"]',
 						'title'    => 'Confirmá el plato',
-						'text'     => 'Presioná “Agregar al pedido” para confirmar la cantidad seleccionada.',
+						'text'     => 'Presioná “Seleccionar” para confirmar la cantidad seleccionada.',
 					],
 					[
 						'selector' => '[data-pllc-field="observaciones"]',
@@ -181,8 +181,8 @@ class PLLC_Tour {
 					],
 					[
 						'selector' => '.add_to_cart_button, .single_add_to_cart_button',
-						'title'    => 'Agregá el producto',
-						'text'     => 'Usá este botón para sumar el producto al carrito. Después podrás seguir comprando o finalizar el pedido.',
+						'title'    => 'Seleccioná el producto',
+						'text'     => 'Elegí una cantidad y presioná “Seleccionar”. Después podrás guardar todas tus elecciones juntas.',
 					],
 					[
 						'selector' => '[data-pllc-role="particular-observations-field"]',
