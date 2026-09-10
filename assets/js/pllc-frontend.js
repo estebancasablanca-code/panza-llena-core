@@ -147,6 +147,23 @@
 		return window.PLLC_Data && PLLC_Data.day_dates ? ( PLLC_Data.day_dates[ day ] || '' ) : '';
 	}
 
+	function getWrapperDay( wrapper ) {
+		if ( ! wrapper ) {
+			return '';
+		}
+
+		// El encabezado es la referencia visible y evita depender de que todas
+		// las páginas de Elementor tengan clases manuales idénticas.
+		var heading = wrapper.querySelector( '.elementor-heading-title' );
+		var headingDay = heading ? normalizeDaySlug( heading.textContent ) : '';
+		if ( headingDay ) {
+			return headingDay;
+		}
+
+		var classMatch = wrapper.className.match( /(?:^|\s)pllc-day-(lunes|martes|miercoles|jueves|viernes|sabado)(?:\s|$)/ );
+		return classMatch ? classMatch[1] : '';
+	}
+
 	function ensureOperationId( holder ) {
 		if ( holder && holder.dataset.pllcOperationId ) {
 			return holder.dataset.pllcOperationId;
@@ -166,13 +183,9 @@
 		}
 		var wrapper = card.closest( '.pllc-day-wrapper' );
 		if ( wrapper ) {
-			var classMatch = wrapper.className.match( /(?:^|\s)pllc-day-(lunes|martes|miercoles|jueves|viernes|sabado)(?:\s|$)/ );
-			if ( classMatch ) {
-				return classMatch[1];
-			}
-			var heading = wrapper.querySelector( '.elementor-heading-title' );
-			if ( heading ) {
-				return normalizeDaySlug( heading.textContent );
+			var wrapperDay = getWrapperDay( wrapper );
+			if ( wrapperDay ) {
+				return wrapperDay;
 			}
 		}
 
@@ -2204,13 +2217,11 @@
 	function hideUnavailableDays() {
 		var availability = window.PLLC_Data && PLLC_Data.day_availability ? PLLC_Data.day_availability : {};
 		document.querySelectorAll( '.pllc-day-wrapper' ).forEach( function ( wrapper ) {
-			Object.keys( availability ).some( function ( day ) {
-				if ( wrapper.classList.contains( 'pllc-day-' + day ) && availability[ day ] !== true ) {
-					wrapper.style.display = 'none';
-					return true;
-				}
-				return false;
-			} );
+			var day = getWrapperDay( wrapper );
+			if ( ! day || ! Object.prototype.hasOwnProperty.call( availability, day ) ) {
+				return;
+			}
+			wrapper.style.display = availability[ day ] === true ? '' : 'none';
 		} );
 	}
 
@@ -2237,19 +2248,8 @@
 				return;
 			}
 
-			var daySlug = '';
-			Object.keys( titles ).some( function ( slug ) {
-				if ( wrapper.classList.contains( 'pllc-day-' + slug ) ) {
-					daySlug = slug;
-					return true;
-				}
-				return false;
-			} );
-
-			if ( ! daySlug ) {
-				var firstWord = heading.textContent.trim().split( /\s+/ )[ 0 ].toLowerCase();
-				daySlug = aliases[ firstWord ] || '';
-			}
+			var firstWord = heading.textContent.trim().split( /\s+/ )[ 0 ].toLowerCase();
+			var daySlug = aliases[ firstWord ] || getWrapperDay( wrapper );
 
 			if ( daySlug && titles[ daySlug ] ) {
 				heading.textContent = titles[ daySlug ];
