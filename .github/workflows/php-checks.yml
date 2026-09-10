@@ -19,8 +19,14 @@ jobs:
         run: php tests/delivery-rules.php
       - name: Check canonical frontend state
         run: php tests/frontend-state.php
+      - name: Check native checkout notes
+        run: php tests/checkout-notes.php
+      - name: Check reported UI regressions
+        run: php tests/ui-regressions.php
       - name: Check JavaScript syntax
-        run: node --check assets/js/pllc-frontend.js
+        run: |
+          node --check assets/js/pllc-frontend.js
+          node --check assets/js/pllc-tour.js
       - name: Check unified style settings
         run: |
           php <<'PHP'

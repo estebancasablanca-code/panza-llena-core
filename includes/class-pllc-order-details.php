@@ -211,6 +211,11 @@ class PLLC_Order_Details {
 		}
 
 		echo '</div>';
+		$customer_note = trim( (string) $order->get_customer_note() );
+		echo '<div class="pllc-admin-customer-note">';
+		echo '<strong>' . esc_html__( 'Notas del pedido', 'panza-llena-core' ) . '</strong>';
+		echo '<span>' . ( $customer_note ? nl2br( esc_html( $customer_note ) ) : esc_html__( 'Sin notas del cliente.', 'panza-llena-core' ) ) . '</span>';
+		echo '</div>';
 		if ( $is_mixed ) {
 			$scope_text = __( 'Las entregas se gestionan por separado. El estado, la cancelación y los correos afectan al pedido completo.', 'panza-llena-core' );
 			$open_label = __( 'Editar facturación y envío', 'panza-llena-core' );
