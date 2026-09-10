@@ -185,12 +185,9 @@ body:is(.pllc-page-iteo-pacientes, .pllc-page-iteo-personal) .pllc-add-btn .elem
 .elementor-menu-cart__product > .pllc-mini-cart-group,
 .woocommerce-mini-cart-item > .pllc-mini-cart-group {
 	grid-column: 1 / -1;
+	order: -100;
 	width: 100%;
 	box-sizing: border-box;
-}
-
-.pllc-mini-cart-group .pllc-cart-group-summary {
-	margin-bottom: 10px;
 }
 
 .elementor-menu-cart__product-name > .pllc-mini-cart-day-label,

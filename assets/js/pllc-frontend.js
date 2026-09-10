@@ -2221,11 +2221,14 @@
 		document.querySelectorAll( '.elementor-menu-cart__product, .woocommerce-mini-cart-item' ).forEach( function ( item ) {
 			var nameCell = item.querySelector( '.elementor-menu-cart__product-name, .product-name' );
 			var header = item.querySelector( '.pllc-cart-group-header' );
+			var group = Array.prototype.find.call( item.children, function ( child ) {
+				return child.classList && child.classList.contains( 'pllc-mini-cart-group' );
+			} );
 
-			if ( header && ! item.querySelector( ':scope > .pllc-mini-cart-group' ) ) {
+			if ( header && ! group ) {
 				var headerData = header.closest( 'dd' );
 				var headerTerm = headerData ? headerData.previousElementSibling : null;
-				var group = document.createElement( 'div' );
+				group = document.createElement( 'div' );
 				group.className = 'pllc-mini-cart-group';
 
 				if ( headerData ) {
@@ -2241,6 +2244,14 @@
 				}
 
 				item.insertBefore( group, item.firstChild );
+			}
+
+			// Los datos del formulario pertenecen al carrito completo. En el lateral
+			// dejamos únicamente el título del pedido para mantenerlo compacto.
+			if ( group ) {
+				group.querySelectorAll( '.pllc-cart-group-summary' ).forEach( function ( summary ) {
+					summary.remove();
+				} );
 			}
 
 			var day = item.querySelector( '.pllc-cart-day-label:not(.pllc-cart-day-label-before-product)' );
@@ -2269,6 +2280,37 @@
 				}
 			} );
 		} );
+	}
+
+	/**
+	 * Elementor puede crear o reemplazar el contenido del panel recién cuando
+	 * se abre. Observamos sólo mutaciones dentro del mini carrito y repetimos la
+	 * limpieza de manera idempotente.
+	 */
+	function observeMiniCartContent() {
+		if ( ! window.MutationObserver || ! document.body ) {
+			return;
+		}
+
+		var scheduled = false;
+		var observer = new MutationObserver( function ( mutations ) {
+			var relevant = mutations.some( function ( mutation ) {
+				var target = mutation.target && mutation.target.nodeType === 1 ? mutation.target : null;
+				return target && target.closest( '.elementor-menu-cart__main, .widget_shopping_cart_content' );
+			} );
+
+			if ( ! relevant || scheduled ) {
+				return;
+			}
+
+			scheduled = true;
+			window.requestAnimationFrame( function () {
+				scheduled = false;
+				arrangeMiniCartContent();
+			} );
+		} );
+
+		observer.observe( document.body, { childList: true, subtree: true } );
 	}
 
 	/**
@@ -2417,6 +2459,7 @@
 		initParticularCartState();
 		initStudentPicker();
 		initSingleOrderForm();
+		observeMiniCartContent();
 		runCleanup();
 		window.setTimeout( emitRememberedCartEvent, 0 );
 
