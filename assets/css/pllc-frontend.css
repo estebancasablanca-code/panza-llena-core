@@ -180,6 +180,25 @@ body:is(.pllc-page-iteo-pacientes, .pllc-page-iteo-personal) .pllc-add-btn .elem
 	margin-top: 6px;
 }
 
+/* El menú lateral conserva la jerarquía del carrito completo: encabezado del
+   pedido a todo el ancho y, dentro del producto, fecha antes del nombre. */
+.elementor-menu-cart__product > .pllc-mini-cart-group,
+.woocommerce-mini-cart-item > .pllc-mini-cart-group {
+	grid-column: 1 / -1;
+	width: 100%;
+	box-sizing: border-box;
+}
+
+.pllc-mini-cart-group .pllc-cart-group-summary {
+	margin-bottom: 10px;
+}
+
+.elementor-menu-cart__product-name > .pllc-mini-cart-day-label,
+.woocommerce-mini-cart-item > .pllc-mini-cart-day-label {
+	display: block;
+	margin: 0 0 5px;
+}
+
 /* Botón "Update Cart": solo debe verse si hay productos de Particular en
    el carrito (son los únicos con cantidad editable) — oculto por defecto,
    el JS lo muestra si corresponde (toggleUpdateCartButton en pllc-frontend.js). */

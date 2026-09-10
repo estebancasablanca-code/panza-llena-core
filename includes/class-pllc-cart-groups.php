@@ -38,6 +38,8 @@ class PLLC_Cart_Groups {
 	public static function init() {
 		add_action( 'woocommerce_cart_loaded_from_session', [ __CLASS__, 'sort_cart_items' ], 20 );
 		add_action( 'woocommerce_before_calculate_totals', [ __CLASS__, 'sort_cart_items' ], 5 );
+		add_action( 'woocommerce_before_cart', [ __CLASS__, 'reset_cart_group_state' ], 1 );
+		add_action( 'woocommerce_before_mini_cart', [ __CLASS__, 'prepare_mini_cart' ], 1 );
 		add_action( 'woocommerce_before_calculate_totals', [ __CLASS__, 'exclude_iteo_prices_from_totals' ], 20 );
 		add_filter( 'woocommerce_cart_item_class', [ __CLASS__, 'add_row_class' ], 10, 3 );
 		add_filter( 'woocommerce_get_item_data', [ __CLASS__, 'inject_group_header' ], 5, 2 );
@@ -62,6 +64,28 @@ class PLLC_Cart_Groups {
 		add_action( 'woocommerce_review_order_before_order_total', [ __CLASS__, 'maybe_show_checkout_shipping_note' ] );
 		add_filter( 'body_class', [ __CLASS__, 'add_cart_body_class' ] );
 		add_filter( 'woocommerce_coupons_enabled', [ __CLASS__, 'disable_checkout_coupons' ] );
+	}
+
+	/**
+	 * Cada render (carrito o fragmento del menú lateral) debe comenzar por el
+	 * primer grupo. El estado estático no puede heredarse de otro render hecho
+	 * durante la misma petición.
+	 */
+	public static function reset_cart_group_state() {
+		self::$last_group_key = null;
+	}
+
+	/**
+	 * Elementor vuelve a generar el mini carrito mediante fragments AJAX y no
+	 * siempre dispara antes el cálculo de totales. Ordenamos acá el mismo array
+	 * canónico que consume el carrito completo y reiniciamos sus encabezados.
+	 */
+	public static function prepare_mini_cart() {
+		self::reset_cart_group_state();
+
+		if ( function_exists( 'WC' ) && WC()->cart ) {
+			self::sort_cart_items( WC()->cart );
+		}
 	}
 
 	/**

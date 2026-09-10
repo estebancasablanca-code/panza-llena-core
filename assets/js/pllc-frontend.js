@@ -2213,6 +2213,65 @@
 	}
 
 	/**
+	 * WooCommerce/Elementor imprime los metadatos del mini carrito después del
+	 * nombre. Reubica únicamente nuestros bloques para conservar la misma
+	 * lectura del carrito completo: pedido, fecha y producto.
+	 */
+	function arrangeMiniCartContent() {
+		document.querySelectorAll( '.elementor-menu-cart__product, .woocommerce-mini-cart-item' ).forEach( function ( item ) {
+			var nameCell = item.querySelector( '.elementor-menu-cart__product-name, .product-name' );
+			var header = item.querySelector( '.pllc-cart-group-header' );
+
+			if ( header && ! item.querySelector( ':scope > .pllc-mini-cart-group' ) ) {
+				var headerData = header.closest( 'dd' );
+				var headerTerm = headerData ? headerData.previousElementSibling : null;
+				var group = document.createElement( 'div' );
+				group.className = 'pllc-mini-cart-group';
+
+				if ( headerData ) {
+					while ( headerData.firstChild ) {
+						group.appendChild( headerData.firstChild );
+					}
+					headerData.remove();
+					if ( headerTerm && headerTerm.tagName === 'DT' ) {
+						headerTerm.remove();
+					}
+				} else {
+					group.appendChild( header );
+				}
+
+				item.insertBefore( group, item.firstChild );
+			}
+
+			var day = item.querySelector( '.pllc-cart-day-label:not(.pllc-cart-day-label-before-product)' );
+			if ( day && ! day.classList.contains( 'pllc-mini-cart-day-label' ) ) {
+				var dayData = day.closest( 'dd' );
+				var dayTerm = dayData ? dayData.previousElementSibling : null;
+				day.classList.add( 'pllc-mini-cart-day-label' );
+
+				if ( nameCell ) {
+					nameCell.insertBefore( day, nameCell.firstChild );
+				} else {
+					item.insertBefore( day, item.firstChild );
+				}
+
+				if ( dayData ) {
+					dayData.remove();
+					if ( dayTerm && dayTerm.tagName === 'DT' ) {
+						dayTerm.remove();
+					}
+				}
+			}
+
+			item.querySelectorAll( 'dl.variation' ).forEach( function ( list ) {
+				if ( ! list.querySelector( 'dd' ) && ! list.textContent.trim() ) {
+					list.remove();
+				}
+			} );
+		} );
+	}
+
+	/**
 	 * Completa el encabezado de cada bloque con la fecha calculada por
 	 * WordPress. Conserva el widget Encabezado de Elementor existente.
 	 */
@@ -2254,6 +2313,7 @@
 	 */
 	function runCleanup() {
 		expandGroupHeadersFullWidth();
+		arrangeMiniCartContent();
 		expandCheckoutGroupHeadersFullWidth();
 		expandOrderDetailGroupHeadersFullWidth();
 		hideGroupHeaderLabel();

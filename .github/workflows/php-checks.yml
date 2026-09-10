@@ -23,6 +23,8 @@ jobs:
         run: php tests/checkout-notes.php
       - name: Check reported UI regressions
         run: php tests/ui-regressions.php
+      - name: Check full and side cart ordering
+        run: php tests/cart-order.php
       - name: Check catalog access rules
         run: php tests/access-rules.php
       - name: Check JavaScript syntax
