@@ -52,12 +52,6 @@ class PLLC_Access {
 			return;
 		}
 
-		if ( function_exists( 'is_shop' ) && is_shop()
-			&& in_array( 'iteo_paciente', PLLC_Roles::get_current_user_roles(), true ) ) {
-			wp_safe_redirect( home_url( '/iteo-pacientes/' ) );
-			exit;
-		}
-
 		if ( ! is_page() ) {
 			return;
 		}
@@ -78,14 +72,14 @@ class PLLC_Access {
 	}
 
 	/**
-	 * Los productos de Particulares admiten visitante, Colegios e ITEO Personal.
-	 * ITEO Pacientes permanece aislado; los institucionales vuelven a su catálogo.
+	 * Los productos de Particulares admiten visitantes y todos los accesos
+	 * institucionales, incluidos ITEO Personal e ITEO Pacientes.
 	 */
 	private static function restrict_single_product() {
 		$product_id = get_queried_object_id();
 		$user_roles = PLLC_Roles::get_current_user_roles();
 
-		if ( self::is_particular_product( $product_id ) && ! in_array( 'iteo_paciente', $user_roles, true ) ) {
+		if ( self::is_particular_product( $product_id ) ) {
 			return;
 		}
 

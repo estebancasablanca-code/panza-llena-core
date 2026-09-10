@@ -6,10 +6,10 @@
  * 2) Lee la selección dentro de cada card de producto (Loop Item):
  *    variante -radio real- (Colegios), checkbox real (ITEO Personal),
  *    cantidad -input number real- (ITEO Pacientes).
- * 3) Maneja el toggle del botón "Agregar al pedido" / "Eliminar" (y
+ * 3) Maneja el toggle del botón "Seleccionar" / "Eliminar" (y
  *    resetea la selección de esa card al eliminar), y la exclusión mutua
  *    en Colegios (agregar un producto bloquea todos los radios y el resto
- *    de los botones "Agregar al pedido" del mismo día).
+ *    de los botones "Seleccionar" del mismo día).
  * 4) Cascada Colegio → Nivel → Curso en el formulario de Colegios.
  * 5) Recolecta todo lo marcado como "agregado" + los datos del formulario,
  *    y lo manda por AJAX a WooCommerce (PLLC_Cart, en el PHP) al hacer
@@ -312,6 +312,7 @@
 			if ( mode ) {
 				button.dataset.pllcMode = mode;
 			}
+			setButtonLabel( button, 'Seleccionar' );
 		} );
 	}
 
@@ -337,7 +338,7 @@
 			button.removeAttribute( 'name' );
 			button.setAttribute( 'data-pllc-role', 'add-btn' );
 			button.setAttribute( 'data-pllc-mode', 'quantity' );
-			setProductButtonState( button, 'Agregar', 'disabled' );
+			setProductButtonState( button, 'Seleccionar', 'disabled' );
 		} );
 	}
 
@@ -369,7 +370,7 @@
 			elements.button.setAttribute( 'data-pllc-role', 'add-btn' );
 			elements.button.setAttribute( 'data-pllc-mode', 'quantity' );
 			elements.button.classList.add( 'pllc-particular-cart-button' );
-			setProductButtonState( elements.button, 'Agregar', 'disabled' );
+			setProductButtonState( elements.button, 'Seleccionar', 'disabled' );
 
 			var nativeForm = elements.button.closest( 'form.cart' );
 			if ( nativeForm ) {
@@ -429,10 +430,12 @@
 	}
 
 	function getBaseAddLabel( button ) {
-		return ( document.body.classList.contains( 'pllc-page-iteo-pacientes' ) || !! getParticularOrderForm() )
-			&& button && button.dataset.pllcMode === 'quantity'
-			? 'Agregar'
-			: 'Agregar al pedido';
+		return 'Seleccionar';
+	}
+
+	function quantityUsesUpdateButton() {
+		return !! getParticularOrderForm()
+			|| document.body.classList.contains( 'pllc-page-iteo-pacientes' );
 	}
 
 	function refreshParticularQuantityButton( card ) {
@@ -484,6 +487,7 @@
 			}
 			elements.button.classList.add( 'pllc-particular-cart-button' );
 			elements.input.value = 1;
+			setProductButtonState( elements.button, 'Seleccionar', 'base' );
 			var productId = getProductId( card );
 			var productState = productId ? state[ productId ] : null;
 			var day = getCardDay( card );
@@ -557,7 +561,7 @@
 				if ( card.dataset.pllcParticularCartKey ) {
 					refreshParticularQuantityButton( card );
 				} else {
-					setProductButtonState( button, 'Agregar', 'base' );
+					setProductButtonState( button, 'Seleccionar', 'base' );
 				}
 				alert( response && response.data && response.data.message ? response.data.message : 'No se pudo actualizar la cantidad.' );
 			} )
@@ -566,7 +570,7 @@
 				if ( card.dataset.pllcParticularCartKey ) {
 					refreshParticularQuantityButton( card );
 				} else {
-					setProductButtonState( button, 'Agregar', 'base' );
+					setProductButtonState( button, 'Seleccionar', 'base' );
 				}
 				alert( 'Error de conexión, probá de nuevo.' );
 			} );
@@ -646,7 +650,7 @@
 			if ( form.dataset.pllcCartKey ) {
 				setProductButtonState( button, current === existing ? 'Eliminar' : 'Actualizar', current === existing ? 'added' : 'pending' );
 			} else {
-				setProductButtonState( button, 'Agregar', 'base' );
+				setProductButtonState( button, 'Seleccionar', 'base' );
 			}
 		}
 
@@ -777,7 +781,7 @@
 		var input    = card.querySelector( '[data-pllc-role="qty-value"]' );
 		var addBtn   = card.querySelector( '[data-pllc-role="add-btn"]' );
 		var existing = parseInt( card.dataset.pllcExistingQty || '0', 10 );
-		var particularBatch = !! getParticularOrderForm();
+		var explicitQuantityUpdate = quantityUsesUpdateButton();
 		if ( ! input || ! addBtn ) {
 			return;
 		}
@@ -796,21 +800,21 @@
 			}
 			return;
 		}
-		if ( current === 0 && ! particularBatch ) {
+		if ( current === 0 && ! explicitQuantityUpdate ) {
 			card.dataset.pllcQuantityUpdate = 'prepared';
 			delete card.dataset.pllcAdded;
 			setProductButtonState( addBtn, getBaseAddLabel( addBtn ), 'disabled' );
 			return;
 		}
 		if ( current !== existing ) {
-			if ( particularBatch ) {
+			if ( explicitQuantityUpdate ) {
 				card.dataset.pllcQuantityUpdate = 'pending';
 				card.dataset.pllcAdded = '1';
 				setProductButtonState( addBtn, 'Actualizar', 'pending' );
 				return;
 			}
-			// En ITEO Pacientes el selector representa la cantidad total.
-			// El cambio se guarda con el botón general "Actualizar carrito".
+			// Otros recorridos cuantitativos pueden preparar el cambio directamente
+			// para guardarlo con el botón general "Actualizar carrito".
 			card.dataset.pllcQuantityUpdate = 'prepared';
 			card.dataset.pllcAdded = '1';
 			setProductButtonState( addBtn, 'Eliminar', 'added' );
@@ -867,7 +871,7 @@
 
 			var btn = card.querySelector( '[data-pllc-role="add-btn"]' );
 			if ( btn ) {
-				setProductButtonState( btn, 'Agregar al pedido', 'base' );
+				setProductButtonState( btn, 'Seleccionar', 'base' );
 			}
 		} );
 	}
@@ -918,7 +922,7 @@
 	 * Refleja en el botón si hay algo YA existente en el carrito real
 	 * para esta card — se llama al cargar la página. Tildar un checkbox
 	 * nuevo NO pasa por acá (no debe activar el botón solo; hace falta
-	 * el click explícito en "Agregar al pedido", ver handleAddClick).
+	 * el click explícito en "Seleccionar", ver handleAddClick).
 	 */
 	function refreshCheckboxCardButton( card ) {
 		var btn = card.querySelector( '[data-pllc-role="add-btn"]' );
@@ -931,10 +935,10 @@
 			setProductButtonState( btn, 'Eliminar', 'added' );
 		} else if ( getCheckedMeals( card ).length ) {
 			card.dataset.pllcAdded = '0';
-			setProductButtonState( btn, 'Agregar al pedido', 'base' );
+			setProductButtonState( btn, 'Seleccionar', 'base' );
 		} else {
 			card.dataset.pllcAdded = '0';
-			setProductButtonState( btn, 'Agregar al pedido', 'disabled' );
+			setProductButtonState( btn, 'Seleccionar', 'disabled' );
 		}
 
 		refreshIteoPersonalSubmitState();
@@ -1017,12 +1021,12 @@
 				setProductButtonState( btn, 'Eliminar', 'added' );
 			} else {
 				delete card.dataset.pllcAdded;
-				setProductButtonState( btn, 'Agregar al pedido', 'disabled' );
+				setProductButtonState( btn, 'Seleccionar', 'disabled' );
 			}
 		} else if ( ! confirmed.length && current.length ) {
 			card.dataset.pllcMealConfirmation = 'pending';
 			card.dataset.pllcMealAction = 'add';
-			setProductButtonState( btn, 'Agregar al pedido', 'base' );
+			setProductButtonState( btn, 'Seleccionar', 'base' );
 		} else {
 			delete card.dataset.pllcMealAction;
 			card.dataset.pllcMealUpdate = 'pending';
@@ -1061,7 +1065,7 @@
 		if ( ! getCheckedMeals( card ).length ) {
 			delete card.dataset.pllcAdded;
 			delete card.dataset.pllcFreshConfirmed;
-			setProductButtonState( btn, 'Agregar al pedido', 'disabled' );
+			setProductButtonState( btn, 'Seleccionar', 'disabled' );
 			refreshIteoPersonalSubmitState();
 			return;
 		}
@@ -1069,7 +1073,7 @@
 		if ( card.dataset.pllcFreshConfirmed === '1' ) {
 			setProductButtonState( btn, 'Eliminar', 'added' );
 		} else {
-			setProductButtonState( btn, 'Agregar al pedido', 'base' );
+			setProductButtonState( btn, 'Seleccionar', 'base' );
 		}
 
 		refreshIteoPersonalSubmitState();
@@ -1096,7 +1100,7 @@
 				setProductButtonState( btn, 'Eliminar', 'added' );
 			} else {
 				delete card.dataset.pllcAdded;
-				setProductButtonState( btn, 'Agregar al pedido', 'disabled' );
+				setProductButtonState( btn, 'Seleccionar', 'disabled' );
 			}
 		} else if ( getCheckedMeals( card ).length ) {
 			card.dataset.pllcFreshConfirmed = '1';
@@ -1109,7 +1113,7 @@
 			delete card.dataset.pllcConfirmedMeals;
 			delete card.dataset.pllcMealConfirmation;
 			delete card.dataset.pllcAdded;
-			setProductButtonState( btn, 'Agregar al pedido', 'disabled' );
+			setProductButtonState( btn, 'Seleccionar', 'disabled' );
 		}
 
 		refreshIteoPersonalSubmitState();
@@ -1208,12 +1212,12 @@
 		// En ITEO Pacientes, "Eliminar" prepara cantidad 0. La línea real
 		// se elimina recién al pulsar el botón general "Actualizar carrito".
 		if ( 'quantity' === mode && card.dataset.pllcCartKeys ) {
-			if ( getParticularOrderForm() && card.dataset.pllcQuantityUpdate === 'pending' ) {
+			if ( quantityUsesUpdateButton() && card.dataset.pllcQuantityUpdate === 'pending' ) {
 				card.dataset.pllcQuantityUpdate = 'prepared';
 				setProductButtonState( btn, 'Cambio preparado', 'pending' );
 				return;
 			}
-			if ( getParticularOrderForm() && card.dataset.pllcQuantityUpdate === 'prepared' ) {
+			if ( quantityUsesUpdateButton() && card.dataset.pllcQuantityUpdate === 'prepared' ) {
 				return;
 			}
 			var existingQtyInput = card.querySelector( '[data-pllc-role="qty-value"]' );
@@ -1251,7 +1255,7 @@
 						setProductButtonState( btn, 'Eliminar', 'added' );
 					} else {
 						delete card.dataset.pllcAdded;
-						setProductButtonState( btn, 'Agregar al pedido', 'disabled' );
+						setProductButtonState( btn, 'Seleccionar', 'disabled' );
 					}
 					refreshIteoPersonalSubmitState();
 					return;
@@ -1267,7 +1271,7 @@
 					delete card.dataset.pllcMealConfirmation;
 					delete card.dataset.pllcMealAction;
 					delete card.dataset.pllcAdded;
-					setProductButtonState( btn, 'Agregar al pedido', 'disabled' );
+					setProductButtonState( btn, 'Seleccionar', 'disabled' );
 					refreshIteoPersonalSubmitState();
 				}
 				return;
@@ -1288,7 +1292,7 @@
 					delete card.dataset.pllcAdded;
 					delete card.dataset.pllcFreshConfirmed;
 					delete card.dataset.pllcConfirmedMeals;
-					setProductButtonState( btn, 'Agregar al pedido', 'disabled' );
+					setProductButtonState( btn, 'Seleccionar', 'disabled' );
 				}
 				refreshIteoPersonalSubmitState();
 				return;
@@ -1321,7 +1325,7 @@
 				delete card.dataset.pllcFreshConfirmed;
 				delete card.dataset.pllcMealConfirmation;
 				card.dataset.pllcAdded = '0';
-				setProductButtonState( btn, 'Agregar al pedido', 'disabled' );
+				setProductButtonState( btn, 'Seleccionar', 'disabled' );
 				refreshIteoPersonalSubmitState();
 				return;
 			}
@@ -1338,7 +1342,7 @@
 				} );
 				card.dataset.pllcMealUpdate = 'prepared';
 				delete card.dataset.pllcAdded;
-				setProductButtonState( btn, 'Agregar al pedido', 'disabled' );
+				setProductButtonState( btn, 'Seleccionar', 'disabled' );
 				refreshIteoPersonalSubmitState();
 				return;
 			}
@@ -2418,7 +2422,7 @@
 		// Captura antes que WooCommerce el click de una línea ya existente.
 		document.addEventListener( 'click', handleParticularQuantityUpdateClick, true );
 
-		// Botones (-, +, Agregar al pedido, Agregar al carrito): clicks.
+		// Botones (-, +, Seleccionar, Agregar al carrito): clicks.
 		document.addEventListener( 'click', function ( e ) {
 			var target = e.target.closest( '[data-pllc-role]' );
 			if ( ! target ) {

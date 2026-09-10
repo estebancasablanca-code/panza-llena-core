@@ -630,3 +630,11 @@ body.woocommerce-checkout.pllc-grouped-order-cart .woocommerce-checkout-review-o
 }
 :is(a[data-pllc-role="add-btn"], button[data-pllc-role="add-btn"], .pllc-add-btn.elementor-button, .pllc-add-btn .elementor-button, [data-pllc-role="add-btn"] .elementor-button, .pllc-particular-cart-button, .pllc-submit-order) :is(.elementor-button-content-wrapper,.elementor-button-text,.elementor-button-icon,i,svg,svg path) {color:inherit !important;}
 :is(a[data-pllc-role="add-btn"], button[data-pllc-role="add-btn"], .pllc-add-btn.elementor-button, .pllc-add-btn .elementor-button, [data-pllc-role="add-btn"] .elementor-button, .pllc-particular-cart-button, .pllc-submit-order) :is(svg,svg path):not([fill="none"]) {fill:currentColor !important;}
+
+/* Particular usa el botón nativo de Elementor, pero sin icono en ningún estado. */
+.pllc-particular-cart-button .elementor-button-icon {
+ display:none !important;
+}
+.pllc-particular-cart-button .elementor-button-content-wrapper {
+ gap:0 !important;
+}
