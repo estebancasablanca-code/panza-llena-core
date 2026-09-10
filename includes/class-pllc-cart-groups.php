@@ -23,6 +23,7 @@ class PLLC_Cart_Groups {
 	private static $last_group_key = null;
 	private static $last_checkout_group_key = null;
 	private static $cart_shipping_note_shown = false;
+	private static $rendering_mini_cart = false;
 
 	const HIDE_PRICE_FOR    = [ 'iteo_pacientes', 'iteo_personal' ];
 	const LOCK_QUANTITY_FOR = [ 'colegios', 'iteo_personal' ];
@@ -40,6 +41,7 @@ class PLLC_Cart_Groups {
 		add_action( 'woocommerce_before_calculate_totals', [ __CLASS__, 'sort_cart_items' ], 5 );
 		add_action( 'woocommerce_before_cart', [ __CLASS__, 'reset_cart_group_state' ], 1 );
 		add_action( 'woocommerce_before_mini_cart', [ __CLASS__, 'prepare_mini_cart' ], 1 );
+		add_action( 'woocommerce_after_mini_cart', [ __CLASS__, 'finish_mini_cart' ], 999 );
 		add_action( 'woocommerce_before_calculate_totals', [ __CLASS__, 'exclude_iteo_prices_from_totals' ], 20 );
 		add_filter( 'woocommerce_cart_item_class', [ __CLASS__, 'add_row_class' ], 10, 3 );
 		add_filter( 'woocommerce_get_item_data', [ __CLASS__, 'inject_group_header' ], 5, 2 );
@@ -81,11 +83,18 @@ class PLLC_Cart_Groups {
 	 * canónico que consume el carrito completo y reiniciamos sus encabezados.
 	 */
 	public static function prepare_mini_cart() {
+		self::$rendering_mini_cart = true;
 		self::reset_cart_group_state();
 
 		if ( function_exists( 'WC' ) && WC()->cart ) {
 			self::sort_cart_items( WC()->cart );
 		}
+	}
+
+	/** Finaliza el contexto exclusivo del menú lateral. */
+	public static function finish_mini_cart() {
+		self::$rendering_mini_cart = false;
+		self::reset_cart_group_state();
 	}
 
 	/**
@@ -403,7 +412,9 @@ class PLLC_Cart_Groups {
 		$form_type = self::get_form_type( $cart_item );
 		$form    = ( isset( $cart_item['pllc_form'] ) && is_array( $cart_item['pllc_form'] ) ) ? $cart_item['pllc_form'] : [];
 		$header  = 'particular' === $form_type ? __( 'Pedido para mí', 'panza-llena-core' ) : self::build_group_label( $form, $form_type );
-		$summary = self::build_summary_line( $form );
+		// El menú lateral es un resumen compacto: conserva el nombre del pedido,
+		// pero no repite Colegio/Nivel/Curso/Cubiertos ni observaciones.
+		$summary = self::$rendering_mini_cart ? '' : self::build_summary_line( $form );
 
 		$html = '<div class="pllc-cart-group-header">' . esc_html( $header ) . '</div>';
 
