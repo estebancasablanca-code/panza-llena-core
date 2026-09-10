@@ -7,7 +7,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 class PLLC_Order_Details {
 
 	private static $last_group_key = null;
-	private static $last_email_group_key = null;
 	private static $email_order_id = 0;
 	private static $email_plain_text = false;
 	private static $admin_group_state = [];
@@ -18,6 +17,8 @@ class PLLC_Order_Details {
 		add_action( 'woocommerce_email_before_order_table', [ __CLASS__, 'begin_email_context' ], 5, 4 );
 		add_action( 'woocommerce_email_after_order_table', [ __CLASS__, 'end_email_context' ], 999, 4 );
 		add_filter( 'woocommerce_email_order_details_heading', [ __CLASS__, 'filter_email_order_heading' ], 20, 3 );
+		add_filter( 'woocommerce_email_order_items_args', [ __CLASS__, 'filter_email_order_items_args' ], 20 );
+		add_filter( 'woocommerce_email_styles', [ __CLASS__, 'filter_email_styles' ], 20, 2 );
 		add_action( 'woocommerce_before_order_item_line_item_html', [ __CLASS__, 'render_admin_group_header' ], 5, 3 );
 		add_filter( 'woocommerce_admin_html_order_item_class', [ __CLASS__, 'add_admin_item_class' ], 20, 3 );
 		add_action( 'woocommerce_admin_order_item_headers', [ __CLASS__, 'render_admin_delivery_status_header' ], 30, 1 );
@@ -45,40 +46,137 @@ class PLLC_Order_Details {
 
 	/** Prepara el contexto que usa el filtro de nombres dentro del correo. */
 	public static function begin_email_context( $order, $sent_to_admin, $plain_text, $email ) {
-		self::$last_email_group_key = null;
-		self::$email_order_id        = is_a( $order, 'WC_Order' ) ? $order->get_id() : 0;
-		self::$email_plain_text      = (bool) $plain_text;
+		self::$email_order_id   = is_a( $order, 'WC_Order' ) ? $order->get_id() : 0;
+		self::$email_plain_text = (bool) $plain_text;
 
-		if ( ! is_a( $order, 'WC_Order' ) || ! self::is_mixed_order( $order ) ) {
+		if ( ! is_a( $order, 'WC_Order' ) ) {
 			return;
 		}
-
-		$title       = self::build_mixed_title( $order );
-		$explanation = self::build_delivery_explanation( $order );
 
 		if ( $plain_text ) {
-			echo "\n" . strtoupper( $title ) . "\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-			echo $explanation . "\n\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			self::render_email_summary_plain( $order );
 			return;
 		}
 
-		echo '<div class="pllc-email-mixed-notice" style="margin:0 0 20px;padding:14px 16px;background:#f4f8f5;border-left:4px solid #1f6b45;">';
-		echo '<strong style="display:block;margin-bottom:5px;">' . esc_html( $title ) . '</strong>';
-		echo '<span>' . esc_html( $explanation ) . '</span>';
-		echo '</div>';
+		self::render_email_summary_html( $order );
 	}
 
 	/** Limpia el contexto para no afectar otras tablas renderizadas después. */
 	public static function end_email_context( $order, $sent_to_admin, $plain_text, $email ) {
-		self::$last_email_group_key = null;
-		self::$email_order_id        = 0;
-		self::$email_plain_text      = false;
+		self::$email_order_id   = 0;
+		self::$email_plain_text = false;
 	}
 
 	public static function filter_email_order_heading( $heading, $order, $email ) {
 		return is_a( $order, 'WC_Order' ) && self::is_mixed_order( $order )
-			? __( 'Resumen del pedido mixto', 'panza-llena-core' )
-			: $heading;
+			? __( 'Detalle del pedido mixto', 'panza-llena-core' )
+			: __( 'Detalle del pedido', 'panza-llena-core' );
+	}
+
+	/** Los SKU son códigos técnicos y no deben aparecer junto a los platos. */
+	public static function filter_email_order_items_args( $args ) {
+		$args['show_sku'] = false;
+		return $args;
+	}
+
+	/**
+	 * Fallback para clientes que conservan el bloque CSS de WooCommerce.
+	 * La estructura principal también lleva estilos inline para Outlook clásico.
+	 */
+	public static function filter_email_styles( $css, $email = null ) {
+		$css .= "\n"
+			. '.pllc-email-summary{width:100%!important;border-collapse:collapse!important;border-spacing:0!important;}'
+			. '.pllc-email-summary td{font-family:Arial,Helvetica,sans-serif!important;}'
+			. '.pllc-email-item-detail{color:#5f5147!important;font-size:12px!important;line-height:18px!important;}'
+			. '.email-order-item-thumbnail img{display:block!important;height:auto!important;border:0!important;outline:none!important;}';
+		return $css;
+	}
+
+	/** Resumen previo a la tabla de WooCommerce, construido con tablas de email. */
+	private static function render_email_summary_html( $order ) {
+		$is_mixed = self::is_mixed_order( $order );
+
+		if ( $is_mixed ) {
+			echo '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" class="pllc-email-summary" style="width:100%;border-collapse:collapse;border-spacing:0;margin:0 0 16px;">';
+			echo '<tr><td bgcolor="#eef7f1" style="background-color:#eef7f1;border-left:4px solid #1f6b45;padding:14px 16px;font-family:Arial,Helvetica,sans-serif;color:#243d30;font-size:14px;line-height:21px;mso-line-height-rule:exactly;">';
+			echo '<p style="margin:0 0 4px;font-size:16px;line-height:22px;mso-line-height-rule:exactly;font-weight:bold;">' . esc_html( self::build_mixed_title( $order ) ) . '</p>';
+			echo '<p style="margin:0;">' . esc_html( self::build_delivery_explanation( $order ) ) . '</p>';
+			echo '</td></tr></table>';
+		}
+
+		echo '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" class="pllc-email-summary" style="width:100%;border-collapse:collapse;border-spacing:0;margin:0 0 20px;">';
+		echo '<tr><td style="padding:0 0 8px;font-family:Arial,Helvetica,sans-serif;color:#3d2b1f;font-size:18px;line-height:24px;mso-line-height-rule:exactly;font-weight:bold;">' . esc_html__( 'Resumen de entrega', 'panza-llena-core' ) . '</td></tr>';
+
+		foreach ( self::get_email_groups( $order ) as $group ) {
+			echo '<tr><td style="padding:0 0 10px;">';
+			echo '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;border-collapse:collapse;border-spacing:0;">';
+			echo '<tr><td bgcolor="#fff8ea" style="background-color:#fff8ea;border-left:4px solid #996300;padding:13px 15px;font-family:Arial,Helvetica,sans-serif;color:#3d2b1f;font-size:14px;line-height:21px;mso-line-height-rule:exactly;">';
+			echo '<p style="margin:0 0 4px;color:#7a5000;font-size:16px;line-height:22px;mso-line-height-rule:exactly;font-weight:bold;">' . esc_html( $group['header'] ) . '</p>';
+			if ( $group['summary'] ) {
+				echo '<p style="margin:0 0 3px;">' . esc_html( $group['summary'] ) . '</p>';
+			}
+			if ( $group['observations'] ) {
+				echo '<p style="margin:0 0 3px;"><strong>' . esc_html__( 'Observaciones para la cocina', 'panza-llena-core' ) . ':</strong> ' . esc_html( $group['observations'] ) . '</p>';
+			}
+			if ( $group['context'] ) {
+				echo '<p style="margin:0;color:#5f5147;">' . esc_html( $group['context'] ) . '</p>';
+			}
+			echo '</td></tr></table>';
+			echo '</td></tr>';
+		}
+
+		echo '</table>';
+	}
+
+	private static function render_email_summary_plain( $order ) {
+		if ( self::is_mixed_order( $order ) ) {
+			echo "\n" . strtoupper( self::build_mixed_title( $order ) ) . "\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			echo self::build_delivery_explanation( $order ) . "\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		}
+
+		echo "\n" . strtoupper( __( 'Resumen de entrega', 'panza-llena-core' ) ) . "\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		foreach ( self::get_email_groups( $order ) as $group ) {
+			echo "\n" . strtoupper( $group['header'] ) . "\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			if ( $group['summary'] ) {
+				echo $group['summary'] . "\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			}
+			if ( $group['observations'] ) {
+				echo __( 'Observaciones para la cocina', 'panza-llena-core' ) . ': ' . $group['observations'] . "\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			}
+			if ( $group['context'] ) {
+				echo $group['context'] . "\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			}
+		}
+		echo "\n";
+	}
+
+	/** Una tarjeta por alumno o modalidad, en el mismo orden que los productos. */
+	private static function get_email_groups( $order ) {
+		$groups = [];
+		$seen   = [];
+
+		foreach ( $order->get_items( 'line_item' ) as $item ) {
+			if ( ! is_a( $item, 'WC_Order_Item_Product' ) ) {
+				continue;
+			}
+
+			$form_type = self::get_item_form_type( $item );
+			$form      = self::get_item_form( $item );
+			$key       = self::get_group_key( $form_type, $form );
+			if ( isset( $seen[ $key ] ) ) {
+				continue;
+			}
+
+			$seen[ $key ] = true;
+			$groups[] = [
+				'header'       => self::build_group_label( $form_type, $form ),
+				'summary'      => self::build_summary_text( $form ),
+				'observations' => self::get_kitchen_observations( $form ),
+				'context'      => self::build_group_context( $form_type, $form ),
+			];
+		}
+
+		return $groups;
 	}
 
 	/** Aviso principal en Gracias y Mi cuenta > Ver pedido. */
@@ -378,51 +476,7 @@ class PLLC_Order_Details {
 		$day       = self::get_item_day_label( $item );
 
 		if ( self::$email_order_id && absint( $item->get_order_id() ) === self::$email_order_id ) {
-			$group_key = self::get_group_key( $form_type, $form );
-			$prefix    = '';
-			if ( self::$last_email_group_key !== $group_key ) {
-				self::$last_email_group_key = $group_key;
-				$header  = self::build_group_label( $form_type, $form );
-				$summary = self::build_summary_text( $form );
-				$observations = self::get_kitchen_observations( $form );
-				$context = self::build_group_context( $form_type, $form );
-
-				if ( self::$email_plain_text ) {
-					$prefix = "\n" . strtoupper( $header ) . "\n";
-					if ( $summary ) {
-						$prefix .= $summary . "\n";
-					}
-					if ( $observations ) {
-						$prefix .= __( 'Observaciones para la cocina', 'panza-llena-core' ) . ': ' . $observations . "\n";
-					}
-					if ( $context ) {
-						$prefix .= $context . "\n";
-					}
-				} else {
-					$prefix = '<span class="pllc-email-order-group" style="display:block;margin:14px 0 8px;padding:9px 11px;background:#f7f4ed;border-left:3px solid #d97706;">';
-					$prefix .= '<strong style="display:block;">' . esc_html( $header ) . '</strong>';
-					if ( $summary ) {
-						$prefix .= '<small style="display:block;margin-top:3px;">' . esc_html( $summary ) . '</small>';
-					}
-					if ( $observations ) {
-						$prefix .= '<small style="display:block;margin-top:3px;"><strong>' . esc_html__( 'Observaciones para la cocina', 'panza-llena-core' ) . ':</strong> ' . esc_html( $observations ) . '</small>';
-					}
-					if ( $context ) {
-						$prefix .= '<small style="display:block;margin-top:3px;">' . esc_html( $context ) . '</small>';
-					}
-					$prefix .= '</span>';
-				}
-			}
-
-			if ( $day ) {
-				if ( self::$email_plain_text ) {
-					$prefix .= sprintf( __( 'Día %s', 'panza-llena-core' ), $day ) . "\n";
-				} else {
-					$prefix .= '<span style="display:block;font-size:12px;font-weight:600;margin-bottom:3px;">' . esc_html( sprintf( __( 'Día %s', 'panza-llena-core' ), $day ) ) . '</span>';
-				}
-			}
-
-			return $prefix . $product_name . self::format_item_meal_label( $item, self::$email_plain_text, true );
+			return self::format_email_item_name( $product_name, $item, $day );
 		}
 
 		if ( is_admin() ) {
@@ -784,21 +838,33 @@ class PLLC_Order_Details {
 		return implode( ' / ', array_unique( $labels ) );
 	}
 
-	/** Formatea la comida para correos y vistas públicas del pedido. */
-	private static function format_item_meal_label( $item, $plain_text = false, $email = false ) {
-		$meal = self::get_item_meal_label( $item );
-		if ( ! $meal ) {
-			return '';
+	/** Mantiene el nombre del producto limpio y agrega datos en líneas simples. */
+	private static function format_email_item_name( $product_name, $item, $day ) {
+		$details = [];
+		if ( $day ) {
+			$details[] = sprintf( __( 'Día %s', 'panza-llena-core' ), $day );
 		}
 
-		$label = sprintf( __( 'Comida: %s', 'panza-llena-core' ), $meal );
-		if ( $plain_text ) {
-			return "\n" . $label;
+		$meal = self::get_item_meal_label( $item );
+		if ( $meal ) {
+			$details[] = sprintf( __( 'Comida: %s', 'panza-llena-core' ), $meal );
 		}
-		if ( $email ) {
-			return '<span class="pllc-order-item-meal" style="display:block;margin-top:4px;font-size:12px;">' . esc_html( $label ) . '</span>';
+
+		if ( self::$email_plain_text ) {
+			return $product_name . ( $details ? "\n" . implode( "\n", $details ) : '' );
 		}
-		return '<span class="pllc-order-item-meal">' . esc_html( $label ) . '</span>';
+
+		$html = '<span style="color:#2f251f;font-weight:bold;">' . $product_name . '</span>';
+		foreach ( $details as $detail ) {
+			$html .= '<br><span class="pllc-email-item-detail" style="color:#5f5147;font-size:12px;line-height:18px;mso-line-height-rule:exactly;">' . esc_html( $detail ) . '</span>';
+		}
+		return $html;
+	}
+
+	/** Formatea la comida en las vistas web del pedido. */
+	private static function format_item_meal_label( $item ) {
+		$meal = self::get_item_meal_label( $item );
+		return $meal ? '<span class="pllc-order-item-meal">' . esc_html( sprintf( __( 'Comida: %s', 'panza-llena-core' ), $meal ) ) . '</span>' : '';
 	}
 
 	private static function get_order_form_types( $order ) {

@@ -74,6 +74,12 @@ node tests/mini-cart-dom.js
 
 Antes de publicar también se prueba manualmente un pedido de cada modalidad, un carrito mixto, el límite de las 22:00, los correos y el panel de Entregas.
 
+## Correos
+
+Los correos conservan la envoltura y la tabla de productos de WooCommerce. El resumen de entrega utiliza tablas de presentación, anchos explícitos, colores de respaldo y estilos inline para mantener compatibilidad con Outlook clásico y online, Gmail y Apple Mail. No depende de Flexbox, Grid, variables CSS ni JavaScript.
+
+Los SKU internos no se muestran. Cada producto conserva nombre, fecha completa, Almuerzo/Cena cuando corresponda, imagen, cantidad e importe aplicable. La variante de texto plano contiene la misma información sin etiquetas HTML.
+
 ## Publicación y rollback
 
 1. Crear una rama desde `main` y cambiar una sola área funcional por vez.

@@ -115,6 +115,18 @@ check_order_communication( false !== strpos( $school_email, 'Pedido para Ana' ),
 check_order_communication( false !== strpos( $school_email, 'Colegio: Plaza Mayor' ), 'A non-mixed school email must include school data.' );
 check_order_communication( false !== strpos( $school_email, 'Observaciones para la cocina' ) && false !== strpos( $school_email, 'Sin salsa' ), 'A non-mixed school email must include kitchen observations.' );
 check_order_communication( false !== strpos( $school_email, 'Día Miércoles 9 de septiembre' ), 'Emails must show the concrete delivery date.' );
+check_order_communication( false !== strpos( $school_email, 'Resumen de entrega' ), 'Every HTML email must explain the delivery structure before its products.' );
+check_order_communication( false !== strpos( $school_email, 'role="presentation"' ) && false !== strpos( $school_email, 'width="100%"' ), 'Email summaries must use presentation tables with explicit widths.' );
+check_order_communication( false !== strpos( $school_email, 'bgcolor="#fff8ea"' ) && false !== strpos( $school_email, 'mso-line-height-rule:exactly' ), 'Email summaries must include Outlook-safe visual fallbacks.' );
+check_order_communication( false === strpos( $school_email, 'pllc-email-order-group' ), 'Group cards must not be embedded in the product-name element.' );
+check_order_communication( strpos( $school_email, 'Resumen de entrega' ) < strpos( $school_email, 'Plato del día' ), 'Delivery groups must appear before the product table content.' );
+
+$repeated_school_order = register_order( 5, [
+	make_item( 5, 'colegios', $school_form ),
+	make_item( 5, 'colegios', $school_form ),
+] );
+$repeated_school_email = render_email_items( $repeated_school_order );
+check_order_communication( 1 === substr_count( $repeated_school_email, 'Pedido para Ana' ), 'A delivery group must be summarized only once.' );
 
 $iteo_order = register_order( 2, [ make_item( 2, 'iteo_personal', [], [ 'almuerzo' ] ) ] );
 $iteo_email = render_email_items( $iteo_order );
@@ -125,6 +137,7 @@ check_order_communication( false !== strpos( $iteo_email, 'Comida: Almuerzo' ), 
 $iteo_plain = render_email_items( $iteo_order, true );
 check_order_communication( false !== strpos( $iteo_plain, 'PEDIDO PARA ITEO PERSONAL' ), 'Plain-text emails must include the group heading.' );
 check_order_communication( false !== strpos( $iteo_plain, 'Comida: Almuerzo' ), 'Plain-text emails must include the meal.' );
+check_order_communication( false === strpos( $iteo_plain, '<table' ), 'Plain-text emails must never contain layout markup.' );
 PLLC_Order_Details::begin_email_context( $iteo_order, false, false, null );
 check_order_communication( [] === PLLC_Order_Details::maybe_hide_order_totals( [ 'total' => '$0' ], $iteo_order, 'excl' ), 'ITEO-only emails must not display totals.' );
 PLLC_Order_Details::end_email_context( $iteo_order, false, false, null );
@@ -141,6 +154,12 @@ $mixed_email = render_email_items( $mixed_order );
 check_order_communication( false !== strpos( $mixed_email, 'Pedido mixto: ITEO Personal + Particular' ), 'Mixed emails must keep their overall explanation.' );
 check_order_communication( false !== strpos( $mixed_email, 'Pedido para ITEO Personal' ) && false !== strpos( $mixed_email, 'Pedido particular' ), 'Mixed emails must identify every group.' );
 check_order_communication( false !== strpos( $mixed_email, 'Comida: Cena' ), 'Mixed emails must include the ITEO meal.' );
+
+$email_args = PLLC_Order_Details::filter_email_order_items_args( [ 'show_sku' => true, 'show_image' => true ] );
+check_order_communication( false === $email_args['show_sku'] && true === $email_args['show_image'], 'Hide technical SKUs without changing product images.' );
+$email_css = PLLC_Order_Details::filter_email_styles( '.woocommerce{color:#000;}' );
+check_order_communication( false !== strpos( $email_css, '.pllc-email-summary' ), 'Append scoped email fallback styles.' );
+check_order_communication( false === strpos( $email_css, 'display:flex' ) && false === strpos( $email_css, 'display:grid' ), 'Do not rely on modern layout engines in email CSS.' );
 
 $GLOBALS['pllc_received'] = true;
 PLLC_Order_Details::reset_group_state( $iteo_order );
