@@ -357,10 +357,9 @@ body.woocommerce-checkout.pllc-iteo-price-masked .woocommerce-checkout-review-or
 body.woocommerce-checkout.pllc-iteo-price-masked .woocommerce-checkout-review-order-table td.product-name { width: 100% !important; }
 body.woocommerce-checkout.pllc-iteo-price-masked .woocommerce-checkout-review-order-table tr { display: table-row !important; width: 100% !important; }
 
-/* ITEO: en el cuadro final queda solamente Realizar pedido. */
-body.woocommerce-checkout.pllc-iteo-only-cart #payment .wc_payment_methods,
-body.woocommerce-checkout.pllc-iteo-only-cart #payment .woocommerce-privacy-policy-text,
-body.woocommerce-checkout.pllc-iteo-only-cart #payment .woocommerce-terms-and-conditions-wrapper { display: none !important; }
+/* ITEO: no hay medio de pago, pero los textos legales y los términos de
+   WooCommerce deben conservarse cuando estén configurados. */
+body.woocommerce-checkout.pllc-iteo-only-cart #payment .wc_payment_methods { display: none !important; }
 body.woocommerce-checkout.pllc-iteo-only-cart #payment { background: transparent; }
 body.woocommerce-checkout.pllc-iteo-only-cart #payment .place-order { margin: 0; padding: 0; }
 
@@ -434,6 +433,12 @@ body.pllc-grouped-order-details .woocommerce-table--order-details .pllc-cart-day
 	background: #eef3f6;
 	border-radius: 999px;
 	font-size: .82em;
+}
+
+body.pllc-grouped-order-details .woocommerce-table--order-details .pllc-order-item-meal {
+	display: block;
+	margin-top: 4px;
+	font-size: .9em;
 }
 
 /* Pedido 100% ITEO: el detalle no muestra importes, totales ni pago. */

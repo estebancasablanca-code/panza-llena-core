@@ -21,6 +21,8 @@ jobs:
         run: php tests/frontend-state.php
       - name: Check native checkout notes
         run: php tests/checkout-notes.php
+      - name: Check checkout and order communications
+        run: php tests/order-communications.php
       - name: Check reported UI regressions
         run: php tests/ui-regressions.php
       - name: Check full and side cart ordering

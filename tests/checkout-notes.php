@@ -67,4 +67,15 @@ $order = new PLLC_Test_Order();
 PLLC_Checkout::save_customer_note( $order, [ 'order_comments' => "  Entregar por portería. <b>Gracias</b>  " ] );
 check_checkout_notes( 'Entregar por portería. Gracias' === $order->customer_note, 'Save the native checkout note as the WooCommerce customer note.' );
 
+$checkout_css = file_get_contents( dirname( __DIR__ ) . '/assets/css/pllc-frontend.css' );
+check_checkout_notes(
+	false !== strpos( $checkout_css, 'body.woocommerce-checkout.pllc-iteo-only-cart #payment .wc_payment_methods { display: none !important; }' ),
+	'Hide payment methods for ITEO-only orders.'
+);
+check_checkout_notes(
+	false === strpos( $checkout_css, 'body.woocommerce-checkout.pllc-iteo-only-cart #payment .woocommerce-terms-and-conditions-wrapper { display: none !important; }' )
+		&& false === strpos( $checkout_css, 'body.woocommerce-checkout.pllc-iteo-only-cart #payment .woocommerce-privacy-policy-text,' ),
+	'Keep WooCommerce terms and privacy information visible for ITEO-only orders.'
+);
+
 echo "Checkout note checks passed.\n";
