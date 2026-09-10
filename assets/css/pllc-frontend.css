@@ -183,8 +183,12 @@ body:is(.pllc-page-iteo-pacientes, .pllc-page-iteo-personal) .pllc-add-btn .elem
 /* Botón "Update Cart": solo debe verse si hay productos de Particular en
    el carrito (son los únicos con cantidad editable) — oculto por defecto,
    el JS lo muestra si corresponde (toggleUpdateCartButton en pllc-frontend.js). */
-button[name="update_cart"] {
+body:not(.pllc-cart-has-editable-quantities) button[name="update_cart"] {
 	display: none;
+}
+
+body.pllc-cart-has-editable-quantities button[name="update_cart"] {
+	display: inline-flex;
 }
 
 /* Carrito 100% Colegios: Subtotal y Total muestran el mismo número (no
