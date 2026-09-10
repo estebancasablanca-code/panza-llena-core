@@ -29,6 +29,8 @@ jobs:
         run: php tests/cart-order.php
       - name: Check catalog access rules
         run: php tests/access-rules.php
+      - name: Check infrastructure and cache rules
+        run: php tests/infrastructure.php
       - name: Check JavaScript syntax
         run: |
           node --check assets/js/pllc-frontend.js
