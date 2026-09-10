@@ -777,6 +777,7 @@
 		var input    = card.querySelector( '[data-pllc-role="qty-value"]' );
 		var addBtn   = card.querySelector( '[data-pllc-role="add-btn"]' );
 		var existing = parseInt( card.dataset.pllcExistingQty || '0', 10 );
+		var particularBatch = !! getParticularOrderForm();
 		if ( ! input || ! addBtn ) {
 			return;
 		}
@@ -795,13 +796,19 @@
 			}
 			return;
 		}
-		if ( current === 0 ) {
+		if ( current === 0 && ! particularBatch ) {
 			card.dataset.pllcQuantityUpdate = 'prepared';
 			delete card.dataset.pllcAdded;
 			setProductButtonState( addBtn, getBaseAddLabel( addBtn ), 'disabled' );
 			return;
 		}
 		if ( current !== existing ) {
+			if ( particularBatch ) {
+				card.dataset.pllcQuantityUpdate = 'pending';
+				card.dataset.pllcAdded = '1';
+				setProductButtonState( addBtn, 'Actualizar', 'pending' );
+				return;
+			}
 			// En ITEO Pacientes el selector representa la cantidad total.
 			// El cambio se guarda con el botón general "Actualizar carrito".
 			card.dataset.pllcQuantityUpdate = 'prepared';
@@ -820,11 +827,11 @@
 			return;
 		}
 
-		// Colegios admite un solo plato por día. Cuando la elección queda
-		// confirmada, ningún radio de ese día debe seguir siendo editable,
-		// ni siquiera el de la variante seleccionada.
+		// Colegios admite un solo plato por día. Se bloquean los demás platos,
+		// pero Clásico/XL del plato elegido siguen editables para poder preparar
+		// una actualización sin eliminar primero la línea del carrito.
 		grid.querySelectorAll( '[data-pllc-role="variant"]' ).forEach( function ( input ) {
-			input.disabled = true;
+			input.disabled = closestCard( input ) !== card;
 		} );
 
 		grid.querySelectorAll( '[data-pllc-role="add-btn"]' ).forEach( function ( btn ) {
@@ -1201,6 +1208,14 @@
 		// En ITEO Pacientes, "Eliminar" prepara cantidad 0. La línea real
 		// se elimina recién al pulsar el botón general "Actualizar carrito".
 		if ( 'quantity' === mode && card.dataset.pllcCartKeys ) {
+			if ( getParticularOrderForm() && card.dataset.pllcQuantityUpdate === 'pending' ) {
+				card.dataset.pllcQuantityUpdate = 'prepared';
+				setProductButtonState( btn, 'Cambio preparado', 'pending' );
+				return;
+			}
+			if ( getParticularOrderForm() && card.dataset.pllcQuantityUpdate === 'prepared' ) {
+				return;
+			}
 			var existingQtyInput = card.querySelector( '[data-pllc-role="qty-value"]' );
 			if ( existingQtyInput ) {
 				existingQtyInput.value = 0;
@@ -2386,7 +2401,7 @@
 				handleMealSelectionChange( target );
 			}
 
-			if ( target.matches && target.matches( '.quantity input.qty, input[name="quantity"]' ) ) {
+			if ( ! getParticularOrderForm() && target.matches && target.matches( '.quantity input.qty, input[name="quantity"]' ) ) {
 				refreshParticularQuantityButton( closestCard( target ) );
 			}
 		} );
@@ -2395,7 +2410,7 @@
 			if ( e.target.matches && e.target.matches( '[data-pllc-role="qty-value"]' ) ) {
 				refreshQuantityCardButton( closestCard( e.target ) );
 			}
-			if ( e.target.matches && e.target.matches( '.quantity input.qty, input[name="quantity"]' ) ) {
+			if ( ! getParticularOrderForm() && e.target.matches && e.target.matches( '.quantity input.qty, input[name="quantity"]' ) ) {
 				refreshParticularQuantityButton( closestCard( e.target ) );
 			}
 		} );

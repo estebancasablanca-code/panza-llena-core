@@ -367,6 +367,22 @@
 	border-top: 1px solid #dcdcde;
 }
 
+.pllc-admin-customer-note {
+	display: grid;
+	gap: 4px;
+	margin-top: 12px;
+	padding: 12px 14px;
+	border: 1px solid #dcdcde;
+	border-radius: 5px;
+	background: #fff;
+	line-height: 1.5;
+}
+
+.pllc-admin-customer-note > span {
+	white-space: normal;
+	word-break: break-word;
+}
+
 .pllc-admin-mixed-order-scope {
 	margin: 13px 0 8px;
 	padding: 11px 13px;

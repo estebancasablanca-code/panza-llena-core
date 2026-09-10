@@ -58,7 +58,9 @@ class PLLC_Tour {
 		wp_localize_script( 'pllc-tour', 'PLLC_Tour_Data', [
 			'page'        => $slug,
 			'storage_key' => 'pllc_tour_seen_' . str_replace( '-', '_', $slug ) . '_v1',
-			'auto_start'  => true,
+			// La ayuda queda disponible desde el lanzador, pero nunca interrumpe
+			// automáticamente la navegación del usuario.
+			'auto_start'  => false,
 			'steps'       => self::steps_for( $slug ),
 			'labels'      => [
 				'previous' => 'Anterior',

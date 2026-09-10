@@ -13,12 +13,33 @@ class PLLC_Checkout {
 		add_filter( 'woocommerce_checkout_fields', [ __CLASS__, 'filter_checkout_fields' ], 9999 );
 		add_filter( 'woocommerce_form_field_args', [ __CLASS__, 'enforce_rendered_labels' ], 9999, 3 );
 		add_filter( 'woocommerce_checkout_posted_data', [ __CLASS__, 'normalize_posted_whatsapp' ], 20 );
+		add_action( 'woocommerce_checkout_create_order', [ __CLASS__, 'save_customer_note' ], 20, 2 );
 		add_action( 'woocommerce_after_checkout_validation', [ __CLASS__, 'validate_whatsapp' ], 20, 2 );
 		add_filter( 'woocommerce_admin_billing_fields', [ __CLASS__, 'rename_admin_phone' ] );
 		add_filter( 'woocommerce_email_customer_details_fields', [ __CLASS__, 'rename_email_phone' ], 20, 3 );
 	}
 
 	public static function filter_checkout_fields( $fields ) {
+		// La nota nativa pertenece al pedido completo y debe estar disponible para
+		// Colegios, ambos ITEO y Particulares, incluso si otra personalización del
+		// checkout quitó previamente el grupo "order".
+		if ( empty( $fields['order'] ) || ! is_array( $fields['order'] ) ) {
+			$fields['order'] = [];
+		}
+		$fields['order']['order_comments'] = array_merge(
+			isset( $fields['order']['order_comments'] ) && is_array( $fields['order']['order_comments'] )
+				? $fields['order']['order_comments']
+				: [],
+			[
+				'type'        => 'textarea',
+				'label'       => 'Notas del pedido',
+				'placeholder' => 'Notas sobre tu pedido, por ejemplo indicaciones especiales para la entrega.',
+				'required'    => false,
+				'class'       => [ 'form-row-wide' ],
+				'priority'    => 10,
+			]
+		);
+
 		if ( empty( $fields['billing'] ) ) {
 			return $fields;
 		}
@@ -83,7 +104,24 @@ class PLLC_Checkout {
 				: 'Nombre y apellido';
 		}
 
+		if ( 'order_comments' === $key ) {
+			$args['label']       = 'Notas del pedido';
+			$args['required']    = false;
+			$args['class']       = [ 'form-row-wide' ];
+			$args['placeholder'] = 'Notas sobre tu pedido, por ejemplo indicaciones especiales para la entrega.';
+		}
+
 		return $args;
+	}
+
+	/** Conserva explícitamente la nota nativa como customer_note de WooCommerce. */
+	public static function save_customer_note( $order, $data ) {
+		if ( ! is_object( $order ) || ! method_exists( $order, 'set_customer_note' ) ) {
+			return;
+		}
+
+		$note = isset( $data['order_comments'] ) ? $data['order_comments'] : '';
+		$order->set_customer_note( sanitize_textarea_field( (string) $note ) );
 	}
 
 	public static function normalize_posted_whatsapp( $data ) {
