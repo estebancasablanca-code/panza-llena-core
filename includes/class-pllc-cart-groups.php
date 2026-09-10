@@ -5,8 +5,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Agrupa visualmente el carrito por pedido: inserta un encabezado
- * "Pedido para {alumno}" (o "Pedido ITEO personal/pacientes" / "Pedido
- * para mí" cuando no hay nombre de persona) antes del primer producto de
+ * "Pedido para {alumno}" (o "Pedido para ITEO Personal/Pacientes" / "Pedido
+ * particular" cuando no hay nombre de persona) antes del primer producto de
  * cada pedido.
  *
  * IMPORTANTE sobre el agrupamiento: NO se agrupa por group_id (el UUID
@@ -402,7 +402,7 @@ class PLLC_Cart_Groups {
 
 		$form_type = self::get_form_type( $cart_item );
 		$form    = ( isset( $cart_item['pllc_form'] ) && is_array( $cart_item['pllc_form'] ) ) ? $cart_item['pllc_form'] : [];
-		$header  = 'particular' === $form_type ? __( 'Pedido para mí', 'panza-llena-core' ) : self::build_group_label( $form, $form_type );
+		$header  = 'particular' === $form_type ? __( 'Pedido particular', 'panza-llena-core' ) : self::build_group_label( $form, $form_type );
 		$summary = self::build_summary_line( $form );
 
 		$html = '<div class="pllc-cart-group-header">' . esc_html( $header ) . '</div>';
@@ -470,7 +470,7 @@ class PLLC_Cart_Groups {
 			self::$last_checkout_group_key = $display_key;
 			$form = ( isset( $cart_item['pllc_form'] ) && is_array( $cart_item['pllc_form'] ) ) ? $cart_item['pllc_form'] : [];
 
-			$header  = 'particular' === $form_type ? __( 'Pedido para mí', 'panza-llena-core' ) : self::build_group_label( $form, $form_type );
+			$header  = 'particular' === $form_type ? __( 'Pedido particular', 'panza-llena-core' ) : self::build_group_label( $form, $form_type );
 			$summary = self::build_summary_line( $form );
 
 			$prefix = '<div class="pllc-checkout-group-header"><div class="pllc-cart-group-header">' . esc_html( $header ) . '</div>';
@@ -561,8 +561,8 @@ class PLLC_Cart_Groups {
 		}
 
 		$labels_por_tipo = [
-			'iteo_personal'  => __( 'Pedido ITEO personal', 'panza-llena-core' ),
-			'iteo_pacientes' => __( 'Pedido ITEO pacientes', 'panza-llena-core' ),
+			'iteo_personal'  => __( 'Pedido para ITEO Personal', 'panza-llena-core' ),
+			'iteo_pacientes' => __( 'Pedido para ITEO Pacientes', 'panza-llena-core' ),
 		];
 
 		return isset( $labels_por_tipo[ $form_type ] ) ? $labels_por_tipo[ $form_type ] : __( 'Pedido', 'panza-llena-core' );

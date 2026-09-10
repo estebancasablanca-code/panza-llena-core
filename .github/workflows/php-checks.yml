@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Check PHP syntax
-        run: rg --files -g '*.php' -0 | xargs -0 -n1 php -l
+        run: find . -type f -name '*.php' -print0 | xargs -0 -n1 php -l
       - name: Check order authorization and delivery schedule
         run: php tests/order-rules.php
       - name: Check delivery lifecycle rules
@@ -21,6 +21,8 @@ jobs:
         run: php tests/frontend-state.php
       - name: Check native checkout notes
         run: php tests/checkout-notes.php
+      - name: Check checkout and order communications
+        run: php tests/order-communications.php
       - name: Check reported UI regressions
         run: php tests/ui-regressions.php
       - name: Check full and side cart ordering

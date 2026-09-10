@@ -378,18 +378,6 @@ class PLLC_Order_Details {
 		$day       = self::get_item_day_label( $item );
 
 		if ( self::$email_order_id && absint( $item->get_order_id() ) === self::$email_order_id ) {
-			$order = wc_get_order( self::$email_order_id );
-			if ( ! $order || ! self::is_mixed_order( $order ) ) {
-				if ( ! $day ) {
-					return $product_name;
-				}
-				if ( self::$email_plain_text ) {
-					return sprintf( __( 'Día %s', 'panza-llena-core' ), $day ) . "\n" . $product_name;
-				}
-				return '<span style="display:block;font-size:12px;font-weight:600;margin-bottom:3px;">'
-					. esc_html( sprintf( __( 'Día %s', 'panza-llena-core' ), $day ) ) . '</span>' . $product_name;
-			}
-
 			$group_key = self::get_group_key( $form_type, $form );
 			$prefix    = '';
 			if ( self::$last_email_group_key !== $group_key ) {
@@ -434,7 +422,7 @@ class PLLC_Order_Details {
 				}
 			}
 
-			return $prefix . $product_name;
+			return $prefix . $product_name . self::format_item_meal_label( $item, self::$email_plain_text, true );
 		}
 
 		if ( is_admin() ) {
@@ -481,7 +469,7 @@ class PLLC_Order_Details {
 			$prefix .= '<div class="pllc-cart-day-label">' . esc_html( sprintf( __( 'Día %s', 'panza-llena-core' ), $day ) ) . '</div>';
 		}
 
-		return $prefix . $product_name;
+		return $prefix . $product_name . self::format_item_meal_label( $item );
 	}
 
 	public static function add_item_class( $class, $item, $order ) {
@@ -595,7 +583,7 @@ class PLLC_Order_Details {
 		$labels = [
 			'iteo_personal'  => __( 'Pedido para ITEO Personal', 'panza-llena-core' ),
 			'iteo_pacientes' => __( 'Pedido para ITEO Pacientes', 'panza-llena-core' ),
-			'particular'     => __( 'Pedido para mí', 'panza-llena-core' ),
+			'particular'     => __( 'Pedido particular', 'panza-llena-core' ),
 		];
 		return isset( $labels[ $form_type ] ) ? $labels[ $form_type ] : __( 'Pedido', 'panza-llena-core' );
 	}
@@ -782,6 +770,37 @@ class PLLC_Order_Details {
 		return isset( $labels[ $day ] ) ? $labels[ $day ] : '';
 	}
 
+	/** Devuelve Almuerzo/Cena como dato visible sin exponer el metadato técnico. */
+	private static function get_item_meal_label( $item ) {
+		$meals = $item->get_meta( '_pllc_meals', true );
+		$meals = is_array( $meals ) ? $meals : [ $meals ];
+		$labels = [];
+		foreach ( $meals as $meal ) {
+			$meal = sanitize_key( (string) $meal );
+			if ( in_array( $meal, [ 'almuerzo', 'cena' ], true ) ) {
+				$labels[] = ucfirst( $meal );
+			}
+		}
+		return implode( ' / ', array_unique( $labels ) );
+	}
+
+	/** Formatea la comida para correos y vistas públicas del pedido. */
+	private static function format_item_meal_label( $item, $plain_text = false, $email = false ) {
+		$meal = self::get_item_meal_label( $item );
+		if ( ! $meal ) {
+			return '';
+		}
+
+		$label = sprintf( __( 'Comida: %s', 'panza-llena-core' ), $meal );
+		if ( $plain_text ) {
+			return "\n" . $label;
+		}
+		if ( $email ) {
+			return '<span class="pllc-order-item-meal" style="display:block;margin-top:4px;font-size:12px;">' . esc_html( $label ) . '</span>';
+		}
+		return '<span class="pllc-order-item-meal">' . esc_html( $label ) . '</span>';
+	}
+
 	private static function get_order_form_types( $order ) {
 		if ( ! is_a( $order, 'WC_Order' ) ) {
 			return [];
@@ -848,10 +867,10 @@ class PLLC_Order_Details {
 		$has_iteo = in_array( 'iteo_personal', $types, true ) || in_array( 'iteo_pacientes', $types, true );
 
 		if ( $has_iteo ) {
-			return __( 'La entrega institucional se realiza en ITEO y la entrega a domicilio corresponde únicamente a “Pedido para mí”. Los importes del pedido contemplan solamente los productos Particulares.', 'panza-llena-core' );
+			return __( 'La entrega institucional se realiza en ITEO y la entrega a domicilio corresponde únicamente al “Pedido particular”. Los importes del pedido contemplan solamente los productos Particulares.', 'panza-llena-core' );
 		}
 
-		return __( 'La entrega escolar se realiza en el colegio y la entrega a domicilio corresponde únicamente a “Pedido para mí”. La dirección de envío no se aplica a los productos escolares.', 'panza-llena-core' );
+		return __( 'La entrega escolar se realiza en el colegio y la entrega a domicilio corresponde únicamente al “Pedido particular”. La dirección de envío no se aplica a los productos escolares.', 'panza-llena-core' );
 	}
 
 	private static function resolve_admin_order( $object = null ) {
