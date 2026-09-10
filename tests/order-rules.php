@@ -54,6 +54,18 @@ function at_time( $value ) { return new DateTimeImmutable( $value, wp_timezone()
 $schedule = PLLC_Order_Rules::get_schedule( at_time( '2026-09-13 21:59:00' ) );
 check( $schedule['lunes']['date'] === '2026-09-14' && $schedule['lunes']['available'], 'Sunday before 22:00 must keep Monday open.' );
 
+$schedule = PLLC_Order_Rules::get_schedule( at_time( '2026-09-09 21:00:00' ) );
+check(
+	array_keys( array_filter( array_column( $schedule, 'available', 'date' ) ) ) === [ '2026-09-10', '2026-09-11', '2026-09-12' ],
+	'Wednesday before 22:00 must show Thursday, Friday and Saturday.'
+);
+
+$schedule = PLLC_Order_Rules::get_schedule( at_time( '2026-09-09 22:00:00' ) );
+check(
+	array_keys( array_filter( array_column( $schedule, 'available', 'date' ) ) ) === [ '2026-09-11', '2026-09-12' ],
+	'Wednesday at 22:00 must show only Friday and Saturday.'
+);
+
 $schedule = PLLC_Order_Rules::get_schedule( at_time( '2026-09-13 22:00:00' ) );
 check( ! $schedule['lunes']['available'] && $schedule['martes']['available'], 'Sunday at 22:00 must close Monday.' );
 
