@@ -15,6 +15,7 @@ function is_checkout() { return false; }
 function is_cart() { return false; }
 function esc_html( $value ) { return htmlspecialchars( $value, ENT_QUOTES, 'UTF-8' ); }
 function __( $value ) { return $value; }
+function esc_html__( $value ) { return esc_html( $value ); }
 
 class PLLC_Test_Cart {
 	public $cart_contents;
@@ -107,6 +108,36 @@ PLLC_Cart_Groups::prepare_mini_cart();
 check_cart_order(
 	array_keys( $mini_cart->cart_contents ) === [ 'colegio', 'particular' ],
 	'The side cart must apply the same canonical order immediately before rendering.'
+);
+
+$college_item = cart_item_for_test( 'colegios', 'miercoles', 'Esteban' );
+$college_item['pllc_form'] = array_merge( $college_item['pllc_form'], [
+	'nivel'         => 'Jardín',
+	'curso'         => 'Sala de 4',
+	'cubiertos'     => 'Sí',
+	'observaciones' => 'Sin sal',
+] );
+$mini_header = PLLC_Cart_Groups::inject_group_header( [], $college_item );
+$mini_html   = $mini_header[0]['display'];
+check_cart_order(
+	false !== strpos( $mini_html, 'Pedido para Esteban' ),
+	'The side cart must keep the order/student name as its group title.'
+);
+check_cart_order(
+	false === strpos( $mini_html, 'Colegio' )
+		&& false === strpos( $mini_html, 'Sala de 4' )
+		&& false === strpos( $mini_html, 'Sin sal' ),
+	'The side cart must not expose student form fields or kitchen observations.'
+);
+
+PLLC_Cart_Groups::finish_mini_cart();
+$full_header = PLLC_Cart_Groups::inject_group_header( [], $college_item );
+$full_html   = $full_header[0]['display'];
+check_cart_order(
+	false !== strpos( $full_html, 'Colegio' )
+		&& false !== strpos( $full_html, 'Sala de 4' )
+		&& false !== strpos( $full_html, 'Sin sal' ),
+	'The full cart must keep the student details and observations.'
 );
 
 echo "Cart ordering checks passed.\n";

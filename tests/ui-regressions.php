@@ -61,5 +61,10 @@ check_ui_regression(
 		&& false !== strpos( $frontend, "day.classList.add( 'pllc-mini-cart-day-label' );" ),
 	'Keep order header, delivery day and product in the same visual order in the side cart.'
 );
+check_ui_regression(
+	false !== strpos( $groups, 'private static $rendering_mini_cart = false;' )
+		&& false !== strpos( $groups, "\$summary = self::\$rendering_mini_cart ? '' : self::build_summary_line( \$form );" ),
+	'Do not render student form data or observations in the side cart.'
+);
 
 echo "UI regression checks passed.\n";
