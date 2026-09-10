@@ -53,6 +53,8 @@ function at_time( $value ) { return new DateTimeImmutable( $value, wp_timezone()
 
 $schedule = PLLC_Order_Rules::get_schedule( at_time( '2026-09-13 21:59:00' ) );
 check( $schedule['lunes']['date'] === '2026-09-14' && $schedule['lunes']['available'], 'Sunday before 22:00 must keep Monday open.' );
+check( PLLC_Order_Rules::format_delivery_label( 'lunes', '2026-09-14' ) === 'Lunes 14 de September', 'Delivery labels must include the exact stored date.' );
+check( PLLC_Order_Rules::format_delivery_label( 'martes', '' ) === 'Martes', 'Orders without an exact date must keep the weekday fallback.' );
 
 $schedule = PLLC_Order_Rules::get_schedule( at_time( '2026-09-09 21:00:00' ) );
 check(

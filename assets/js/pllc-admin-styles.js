@@ -29,19 +29,19 @@
 			$customWrap.show();
 			color = $custom.val() || $hidden.attr('data-fallback') || '';
 			$hidden.val(color);
-			setStatus($control, color ? 'Personalizado · ' + color.toUpperCase() : 'Personalizado', color);
+			setStatus($control, color ? color.toUpperCase() : 'Sin color', color);
 			return;
 		}
 
 		$customWrap.hide();
 		if ('inherit' === selected) {
 			$hidden.val('');
-			setStatus($control, 'Heredado de Elementor o del tema', color);
+			setStatus($control, color ? color.toUpperCase() : 'Heredado', color);
 			return;
 		}
 
 		$hidden.val(selected);
-		setStatus($control, $option.text(), color);
+		setStatus($control, color ? color.toUpperCase() : 'Sin color', color);
 	}
 
 	function previewValue(key) {
@@ -76,14 +76,14 @@
 				change: function (event, ui) {
 					if ('custom' === $control.find('.pllc-color-source').val()) {
 						$control.find('.pllc-color-value').val(ui.color.toString());
-						setStatus($control, 'Personalizado · ' + ui.color.toString().toUpperCase(), ui.color.toString());
+						setStatus($control, ui.color.toString().toUpperCase(), ui.color.toString());
 						updateButtonPreview();
 					}
 				},
 				clear: function () {
 					if ('custom' === $control.find('.pllc-color-source').val()) {
 						$control.find('.pllc-color-value').val('');
-						setStatus($control, 'Personalizado', '');
+						setStatus($control, 'Sin color', '');
 					}
 				}
 			});

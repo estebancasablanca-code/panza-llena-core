@@ -375,7 +375,14 @@ class PLLC_Order_Details {
 		if ( self::$email_order_id && absint( $item->get_order_id() ) === self::$email_order_id ) {
 			$order = wc_get_order( self::$email_order_id );
 			if ( ! $order || ! self::is_mixed_order( $order ) ) {
-				return $product_name;
+				if ( ! $day ) {
+					return $product_name;
+				}
+				if ( self::$email_plain_text ) {
+					return sprintf( __( 'Día %s', 'panza-llena-core' ), $day ) . "\n" . $product_name;
+				}
+				return '<span style="display:block;font-size:12px;font-weight:600;margin-bottom:3px;">'
+					. esc_html( sprintf( __( 'Día %s', 'panza-llena-core' ), $day ) ) . '</span>' . $product_name;
 			}
 
 			$group_key = self::get_group_key( $form_type, $form );
@@ -754,6 +761,15 @@ class PLLC_Order_Details {
 
 	private static function get_item_day_label( $item ) {
 		$day = sanitize_key( (string) $item->get_meta( '_pllc_delivery_day', true ) );
+		if ( class_exists( 'PLLC_Order_Rules' ) ) {
+			$formatted = PLLC_Order_Rules::format_delivery_label(
+				$day,
+				$item->get_meta( '_pllc_delivery_date', true )
+			);
+			if ( $formatted ) {
+				return $formatted;
+			}
+		}
 		$labels = [
 			'lunes' => 'Lunes', 'martes' => 'Martes', 'miercoles' => 'Miércoles',
 			'jueves' => 'Jueves', 'viernes' => 'Viernes', 'sabado' => 'Sábado', 'domingo' => 'Domingo',

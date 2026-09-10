@@ -509,12 +509,20 @@ class PLLC_Cart_Groups {
 	}
 
 	private static function get_cart_item_day_label( $cart_item, $prefix ) {
-		if ( ! empty( $cart_item['pllc_day'] ) ) {
+		$day  = ! empty( $cart_item['pllc_day'] ) ? sanitize_key( $cart_item['pllc_day'] ) : '';
+		$date = isset( $cart_item['pllc_delivery_date'] ) ? $cart_item['pllc_delivery_date'] : '';
+		if ( class_exists( 'PLLC_Order_Rules' ) && ( $day || $date ) ) {
+			$formatted = PLLC_Order_Rules::format_delivery_label( $day, $date );
+			if ( $formatted ) {
+				return $formatted;
+			}
+		}
+
+		if ( $day ) {
 			$labels = [
 				'lunes' => 'Lunes', 'martes' => 'Martes', 'miercoles' => 'Miércoles',
 				'jueves' => 'Jueves', 'viernes' => 'Viernes', 'sabado' => 'Sábado',
 			];
-			$day = sanitize_key( $cart_item['pllc_day'] );
 			if ( isset( $labels[ $day ] ) ) {
 				return $labels[ $day ];
 			}

@@ -58,15 +58,30 @@ class PLLC_Order_Rules {
 	public static function get_day_titles( $now = null ) {
 		$titles   = [];
 		$schedule = self::get_schedule( $now );
-		$timezone = wp_timezone();
 		foreach ( $schedule as $slug => $entry ) {
-			$titles[ $slug ] = sprintf(
-				'%s %s',
-				self::DAY_LABELS[ $slug ],
-				wp_date( 'j \\d\\e F', $entry['timestamp'], $timezone )
-			);
+			$titles[ $slug ] = self::format_delivery_label( $slug, $entry['date'] );
 		}
 		return $titles;
+	}
+
+	/** Devuelve un único rótulo de entrega para frontend, correos y administración. */
+	public static function format_delivery_label( $day, $date = '' ) {
+		$day  = sanitize_key( (string) $day );
+		$date = sanitize_text_field( (string) $date );
+
+		if ( preg_match( '/^\\d{4}-\\d{2}-\\d{2}$/', $date ) ) {
+			$parsed = DateTimeImmutable::createFromFormat( '!Y-m-d', $date, wp_timezone() );
+			if ( $parsed && $parsed->format( 'Y-m-d' ) === $date ) {
+				$labels_by_number = [
+					1 => 'Lunes', 2 => 'Martes', 3 => 'Miércoles', 4 => 'Jueves',
+					5 => 'Viernes', 6 => 'Sábado', 7 => 'Domingo',
+				];
+				$label = $labels_by_number[ (int) $parsed->format( 'N' ) ];
+				return sprintf( '%s %s', $label, wp_date( 'j \\d\\e F', $parsed->getTimestamp(), wp_timezone() ) );
+			}
+		}
+
+		return isset( self::DAY_LABELS[ $day ] ) ? self::DAY_LABELS[ $day ] : '';
 	}
 
 	public static function get_day_dates( $now = null ) {
