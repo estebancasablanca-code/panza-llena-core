@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Panza Llena Core
  * Description:       Lógica de pedidos, accesos institucionales y entregas de Panza Llena sobre WooCommerce.
- * Version:            0.23.65
+ * Version:            0.23.66
  * Requires at least:  6.9
  * Requires PHP:        7.4
  * Author:              Esteban
@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'PLLC_VERSION', '0.23.65' );
+define( 'PLLC_VERSION', '0.23.66' );
 define( 'PLLC_PATH', plugin_dir_path( __FILE__ ) );
 define( 'PLLC_URL', plugin_dir_url( __FILE__ ) );
 
