@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class PLLC_Deliveries {
 
-	const DB_VERSION        = '1.0.0';
+	const DB_VERSION        = '1.1.0';
 	const DB_VERSION_OPTION = 'pllc_deliveries_db_version';
 	const TABLE_SUFFIX      = 'pllc_deliveries';
 	const ORDER_META_STATUS = '_pllc_delivery_status';
@@ -26,8 +26,9 @@ class PLLC_Deliveries {
 		add_action( 'init', [ __CLASS__, 'maybe_install' ], 5 );
 		add_action( 'woocommerce_checkout_create_order_line_item', [ __CLASS__, 'save_order_item_delivery_meta' ], 20, 4 );
 		add_action( 'woocommerce_checkout_order_created', [ __CLASS__, 'create_order_deliveries' ], 20 );
+		add_action( 'woocommerce_saved_order_items', [ __CLASS__, 'reconcile_order_deliveries' ], 20 );
 		add_action( 'woocommerce_order_status_changed', [ __CLASS__, 'handle_order_status_change' ], 20, 4 );
-		add_action( 'woocommerce_trash_order', [ __CLASS__, 'delete_order_deliveries' ], 20 );
+		add_action( 'woocommerce_trash_order', [ __CLASS__, 'suspend_order_deliveries' ], 20 );
 		add_action( 'woocommerce_before_delete_order', [ __CLASS__, 'delete_order_deliveries' ], 20 );
 		add_action( 'woocommerce_untrash_order', [ __CLASS__, 'restore_order_deliveries' ], 20 );
 		add_filter( 'woocommerce_hidden_order_itemmeta', [ __CLASS__, 'hide_internal_order_item_meta' ] );
@@ -101,6 +102,8 @@ class PLLC_Deliveries {
 			delivery_date date DEFAULT NULL,
 			delivery_day varchar(20) NOT NULL DEFAULT '',
 			status varchar(20) NOT NULL DEFAULT 'pending',
+			previous_status varchar(20) NOT NULL DEFAULT '',
+			cancel_reason varchar(32) NOT NULL DEFAULT '',
 			recipient_label text NOT NULL,
 			item_count int(10) unsigned NOT NULL DEFAULT 0,
 			item_ids longtext NOT NULL,
@@ -173,11 +176,20 @@ class PLLC_Deliveries {
 		self::sync_order_deliveries( $order );
 	}
 
-	/**
-	 * Elimina las unidades operativas cuando el pedido se envía a la papelera
-	 * o se borra definitivamente. La tabla de entregas no forma parte del
-	 * almacenamiento nativo de WooCommerce y necesita esta limpieza explícita.
-	 */
+	/** Revisa las unidades después de editar productos desde WooCommerce. */
+	public static function reconcile_order_deliveries( $order_id ) {
+		$order = wc_get_order( absint( $order_id ) );
+		if ( $order ) {
+			self::sync_order_deliveries( $order );
+		}
+	}
+
+	/** En papelera se conserva el historial y sólo se suspenden filas activas. */
+	public static function suspend_order_deliveries( $order_id ) {
+		self::cancel_active_deliveries( $order_id, 'trash' );
+	}
+
+	/** El borrado definitivo sí elimina las filas operativas. */
 	public static function delete_order_deliveries( $order_id ) {
 		global $wpdb;
 
@@ -193,13 +205,11 @@ class PLLC_Deliveries {
 		);
 	}
 
-	/**
-	 * Si un pedido se restaura desde la papelera, reconstruye sus entregas a
-	 * partir de los metadatos conservados en cada renglón del pedido.
-	 */
+	/** Restaura sólo lo suspendido por la papelera y reconcilia los ítems. */
 	public static function restore_order_deliveries( $order_id ) {
 		$order = wc_get_order( absint( $order_id ) );
 		if ( $order ) {
+			self::restore_cancelled_deliveries( $order->get_id(), [ 'trash' ] );
 			self::sync_order_deliveries( $order );
 		}
 	}
@@ -275,11 +285,13 @@ class PLLC_Deliveries {
 			];
 		}
 
-		$now = current_time( 'mysql' );
+		$now           = current_time( 'mysql' );
+		$delivery_keys = [];
 		foreach ( $groups as $group ) {
 			$delivery_key = hash( 'sha256', $order->get_id() . '|' . $group['order_type'] . '|' . $group['destination_slug'] . '|' . ( $group['delivery_date'] ? $group['delivery_date'] : 'sin-fecha|' . $group['delivery_day'] ) );
+			$delivery_keys[] = $delivery_key;
 			$existing     = $wpdb->get_row( $wpdb->prepare(
-				"SELECT id, status FROM " . self::table_name() . ' WHERE delivery_key = %s',
+				"SELECT id, status, previous_status, cancel_reason FROM " . self::table_name() . ' WHERE delivery_key = %s',
 				$delivery_key
 			) );
 			$existing_id  = $existing ? absint( $existing->id ) : 0;
@@ -299,21 +311,30 @@ class PLLC_Deliveries {
 			];
 
 			if ( $existing_id ) {
-				// WooCommerce puede reutilizar un pedido fallido al reintentar el
-				// checkout. En ese caso la entrega vuelve a la cola operativa.
-				if ( 'cancelled' === $existing->status ) {
-					$data['status']            = 'pending';
+				// Sólo una fila retirada por una edición de ítems puede reaparecer
+				// automáticamente. Otras cancelaciones requieren reactivar el pedido.
+				if ( 'cancelled' === $existing->status && 'items_changed' === $existing->cancel_reason
+					&& ! self::is_inactive_order_status( $order->get_status() ) ) {
+					$data['status'] = in_array( $existing->previous_status, [ 'pending', 'prepared' ], true )
+						? $existing->previous_status
+						: 'pending';
+					$data['previous_status']   = '';
+					$data['cancel_reason']      = '';
 					$data['status_changed_at'] = $now;
 				}
 				$wpdb->update( self::table_name(), $data, [ 'id' => $existing_id ] );
 			} else {
 				$data['delivery_key']     = $delivery_key;
-				$data['status']           = 'pending';
+				$data['status']           = self::is_inactive_order_status( $order->get_status() ) ? 'cancelled' : 'pending';
+				$data['previous_status']  = self::is_inactive_order_status( $order->get_status() ) ? 'pending' : '';
+				$data['cancel_reason']     = self::is_inactive_order_status( $order->get_status() ) ? 'order_' . $order->get_status() : '';
 				$data['created_at']       = $now;
 				$data['status_changed_at'] = $now;
 				$wpdb->insert( self::table_name(), $data );
 			}
 		}
+
+		self::cancel_obsolete_deliveries( $order->get_id(), $delivery_keys );
 
 		self::refresh_order_delivery_status( $order );
 	}
@@ -434,27 +455,83 @@ class PLLC_Deliveries {
 		return $name ? $name : sprintf( 'Pedido #%d', $order->get_id() );
 	}
 
+	private static function is_inactive_order_status( $status ) {
+		return in_array( sanitize_key( (string) $status ), [ 'cancelled', 'refunded', 'failed', 'trash' ], true );
+	}
+
+	/** Suspende pendientes/preparadas sin alterar entregas ya realizadas. */
+	private static function cancel_active_deliveries( $order_id, $reason ) {
+		global $wpdb;
+		$order_id = absint( $order_id );
+		$reason   = sanitize_key( (string) $reason );
+		if ( ! $order_id || ! $reason ) {
+			return 0;
+		}
+		$now = current_time( 'mysql' );
+		return $wpdb->query( $wpdb->prepare(
+			"UPDATE " . self::table_name() . " SET previous_status = status, status = 'cancelled', cancel_reason = %s, status_changed_at = %s, updated_at = %s WHERE order_id = %d AND status IN ('pending','prepared')",
+			$reason,
+			$now,
+			$now,
+			$order_id
+		) );
+	}
+
+	/** Recupera únicamente cancelaciones cuyo origen coincide. */
+	private static function restore_cancelled_deliveries( $order_id, $reasons ) {
+		global $wpdb;
+		$order_id = absint( $order_id );
+		$reasons  = array_values( array_unique( array_filter( array_map( 'sanitize_key', (array) $reasons ) ) ) );
+		if ( ! $order_id || ! $reasons ) {
+			return 0;
+		}
+		$now          = current_time( 'mysql' );
+		$placeholders = implode( ',', array_fill( 0, count( $reasons ), '%s' ) );
+		$args         = array_merge( [ $now, $now, $order_id ], $reasons );
+		return $wpdb->query( $wpdb->prepare(
+			"UPDATE " . self::table_name() . " SET status = CASE WHEN previous_status IN ('pending','prepared') THEN previous_status ELSE 'pending' END, previous_status = '', cancel_reason = '', status_changed_at = %s, updated_at = %s WHERE order_id = %d AND status = 'cancelled' AND cancel_reason IN ({$placeholders})",
+			$args
+		) );
+	}
+
+	/** Retira filas de ítems eliminados, conservándolas como historial. */
+	private static function cancel_obsolete_deliveries( $order_id, $active_keys ) {
+		global $wpdb;
+		$order_id   = absint( $order_id );
+		$active_keys = array_values( array_unique( array_filter( array_map( 'sanitize_text_field', (array) $active_keys ) ) ) );
+		if ( ! $order_id ) {
+			return 0;
+		}
+
+		$now   = current_time( 'mysql' );
+		$sql   = "UPDATE " . self::table_name() . " SET previous_status = status, status = 'cancelled', cancel_reason = 'items_changed', status_changed_at = %s, updated_at = %s WHERE order_id = %d AND status IN ('pending','prepared')";
+		$args  = [ $now, $now, $order_id ];
+		if ( $active_keys ) {
+			$sql  .= ' AND delivery_key NOT IN (' . implode( ',', array_fill( 0, count( $active_keys ), '%s' ) ) . ')';
+			$args = array_merge( $args, $active_keys );
+		}
+		return $wpdb->query( $wpdb->prepare( $sql, $args ) );
+	}
+
+	private static function can_bulk_transition( $delivery_status, $order_status ) {
+		return 'cancelled' !== sanitize_key( (string) $delivery_status )
+			&& ! self::is_inactive_order_status( $order_status );
+	}
+
+	private static function should_complete_order( $delivery_status, $order_status ) {
+		return 'delivered' === $delivery_status && 'processing' === $order_status;
+	}
+
 	/** Si se cancela el pedido financiero, sus entregas dejan la cola activa. */
 	public static function handle_order_status_change( $order_id, $from, $to, $order ) {
-		global $wpdb;
-		$inactive = [ 'cancelled', 'refunded', 'failed' ];
-		$active   = [ 'pending', 'on-hold', 'processing' ];
-		$now      = current_time( 'mysql' );
+		$active = [ 'pending', 'on-hold', 'processing' ];
 
-		if ( in_array( $to, $inactive, true ) ) {
-			$wpdb->query( $wpdb->prepare(
-				"UPDATE " . self::table_name() . " SET status = 'cancelled', status_changed_at = %s, updated_at = %s WHERE order_id = %d AND status <> 'cancelled'",
-				$now,
-				$now,
-				$order_id
-			) );
-		} elseif ( in_array( $from, [ 'cancelled', 'failed' ], true ) && in_array( $to, $active, true ) ) {
-			$wpdb->query( $wpdb->prepare(
-				"UPDATE " . self::table_name() . " SET status = 'pending', status_changed_at = %s, updated_at = %s WHERE order_id = %d AND status = 'cancelled'",
-				$now,
-				$now,
-				$order_id
-			) );
+		if ( self::is_inactive_order_status( $to ) ) {
+			self::cancel_active_deliveries( $order_id, 'order_' . sanitize_key( $to ) );
+		} elseif ( self::is_inactive_order_status( $from ) && in_array( $to, $active, true ) ) {
+			self::restore_cancelled_deliveries( $order_id, [ 'order_' . sanitize_key( $from ) ] );
+			self::sync_order_deliveries( $order );
+			return;
 		} else {
 			return;
 		}
@@ -478,8 +555,9 @@ class PLLC_Deliveries {
 		$order->update_meta_data( self::ORDER_META_STATUS, $status );
 		$order->save_meta_data();
 
-		// El estado financiero solo se completa cuando no queda ninguna parte.
-		if ( 'delivered' === $status && $order->has_status( [ 'processing', 'on-hold' ] ) ) {
+		// La logística puede cerrar un pedido pagado en proceso, pero nunca
+		// convertir un pedido en espera en pagado/completado.
+		if ( self::should_complete_order( $status, $order->get_status() ) ) {
 			$order->update_status( 'completed', 'Todas las unidades de entrega fueron marcadas como entregadas.' );
 		}
 	}
@@ -952,30 +1030,38 @@ class PLLC_Deliveries {
 		global $wpdb;
 		$placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
 		$rows         = $wpdb->get_results( $wpdb->prepare(
-			'SELECT id, order_id, destination_label, delivery_date FROM ' . self::table_name() . " WHERE id IN ({$placeholders})",
+			'SELECT id, order_id, destination_label, delivery_date, status FROM ' . self::table_name() . " WHERE id IN ({$placeholders})",
 			$ids
 		) );
 		$orders  = [];
 		$updated = 0;
+		$skipped = 0;
 		$now     = current_time( 'mysql' );
 
 		foreach ( $rows as $row ) {
+			$order = wc_get_order( absint( $row->order_id ) );
+			if ( ! $order || ! self::can_bulk_transition( $row->status, $order->get_status() ) ) {
+				$skipped++;
+				continue;
+			}
 			$result = $wpdb->update(
 				self::table_name(),
-				[ 'status' => $status, 'status_changed_at' => $now, 'updated_at' => $now ],
+				[ 'status' => $status, 'previous_status' => '', 'cancel_reason' => '', 'status_changed_at' => $now, 'updated_at' => $now ],
 				[ 'id' => absint( $row->id ) ]
 			);
 			if ( false !== $result ) {
 				$updated++;
-				$orders[ absint( $row->order_id ) ][] = $row;
+				$order_id = absint( $row->order_id );
+				if ( ! isset( $orders[ $order_id ] ) ) {
+					$orders[ $order_id ] = [ 'order' => $order, 'deliveries' => [] ];
+				}
+				$orders[ $order_id ]['deliveries'][] = $row;
 			}
 		}
 
-		foreach ( $orders as $order_id => $deliveries ) {
-			$order = wc_get_order( $order_id );
-			if ( ! $order ) {
-				continue;
-			}
+		foreach ( $orders as $order_id => $entry ) {
+			$order      = $entry['order'];
+			$deliveries = $entry['deliveries'];
 			$order->add_order_note( sprintf(
 				'%d unidad(es) de entrega marcada(s) como “%s” mediante acción en lote.',
 				count( $deliveries ),
@@ -984,14 +1070,17 @@ class PLLC_Deliveries {
 			self::refresh_order_delivery_status( $order );
 		}
 
-		self::redirect_after_bulk( $updated, false );
+		self::redirect_after_bulk( $updated, false, $skipped );
 	}
 
-	private static function redirect_after_bulk( $updated, $error ) {
+	private static function redirect_after_bulk( $updated, $error, $skipped = 0 ) {
 		$fallback = add_query_arg( 'page', 'pllc-deliveries', admin_url( 'admin.php' ) );
 		$redirect = wp_validate_redirect( wp_get_referer(), $fallback );
-		$redirect = remove_query_arg( [ 'pllc_updated', 'pllc_delivery_error' ], $redirect );
+		$redirect = remove_query_arg( [ 'pllc_updated', 'pllc_delivery_error', 'pllc_delivery_skipped' ], $redirect );
 		$redirect = add_query_arg( $error ? 'pllc_delivery_error' : 'pllc_updated', $error ? 1 : absint( $updated ), $redirect );
+		if ( $skipped ) {
+			$redirect = add_query_arg( 'pllc_delivery_skipped', absint( $skipped ), $redirect );
+		}
 		wp_safe_redirect( $redirect );
 		exit;
 	}
@@ -1002,6 +1091,10 @@ class PLLC_Deliveries {
 		} elseif ( isset( $_GET['pllc_updated'] ) ) {
 			$count = absint( $_GET['pllc_updated'] );
 			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html( sprintf( 'Se actualizaron %d entregas.', $count ) ) . '</p></div>';
+		}
+		if ( ! empty( $_GET['pllc_delivery_skipped'] ) ) {
+			$count = absint( $_GET['pllc_delivery_skipped'] );
+			echo '<div class="notice notice-warning is-dismissible"><p>' . esc_html( sprintf( 'Se omitieron %d entregas canceladas o pertenecientes a pedidos inactivos.', $count ) ) . '</p></div>';
 		}
 	}
 

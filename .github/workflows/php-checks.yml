@@ -15,6 +15,8 @@ jobs:
         run: rg --files -g '*.php' -0 | xargs -0 -n1 php -l
       - name: Check order authorization and delivery schedule
         run: php tests/order-rules.php
+      - name: Check delivery lifecycle rules
+        run: php tests/delivery-rules.php
       - name: Check unified style settings
         run: |
           php <<'PHP'
