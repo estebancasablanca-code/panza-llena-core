@@ -17,6 +17,10 @@ jobs:
         run: php tests/order-rules.php
       - name: Check delivery lifecycle rules
         run: php tests/delivery-rules.php
+      - name: Check canonical frontend state
+        run: php tests/frontend-state.php
+      - name: Check JavaScript syntax
+        run: node --check assets/js/pllc-frontend.js
       - name: Check unified style settings
         run: |
           php <<'PHP'

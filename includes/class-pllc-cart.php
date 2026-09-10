@@ -56,7 +56,7 @@ class PLLC_Cart {
 			wp_send_json_error( [ 'message' => $replayed->get_error_message() ] );
 		}
 		if ( is_array( $replayed ) ) {
-			wp_send_json_success( $replayed );
+			wp_send_json_success( array_merge( $replayed, self::get_frontend_event_data( 'particular' ) ) );
 		}
 		$selection = PLLC_Order_Rules::validate_selection( [
 			'product_id' => $product_id,
@@ -85,7 +85,7 @@ class PLLC_Cart {
 		WC()->cart->set_session();
 		$response = array_merge(
 			[ 'cart_item_key' => $cart_key, 'quantity' => $quantity ],
-			self::get_cart_event_data()
+			self::get_frontend_event_data( 'particular' )
 		);
 		self::store_processed_operation( $operation_id, $operation_hash, $response );
 		wp_send_json_success( $response );
@@ -164,7 +164,7 @@ class PLLC_Cart {
 
 		wp_send_json_success( array_merge(
 			[ 'quantity' => $quantity ],
-			self::get_cart_event_data()
+			self::get_frontend_event_data( 'particular' )
 		) );
 	}
 
@@ -320,7 +320,7 @@ class PLLC_Cart {
 			wp_send_json_error( [ 'message' => $replayed->get_error_message() ] );
 		}
 		if ( is_array( $replayed ) ) {
-			wp_send_json_success( $replayed );
+			wp_send_json_success( array_merge( $replayed, self::get_frontend_event_data( $form_type ) ) );
 		}
 
 		$prepared = self::prepare_operations( $form_type, $items, $updates, $quantity_updates, $meal_updates, $student_key );
@@ -414,7 +414,7 @@ class PLLC_Cart {
 			'quantity_updated' => $quantity_updated,
 			'meal_updated' => $meal_updated,
 			'group_id' => $group_id,
-		], self::get_cart_event_data() );
+		], self::get_frontend_event_data( $form_type ) );
 		self::store_processed_operation( $operation_id, $operation_hash, $response );
 		wp_send_json_success( $response );
 	}
@@ -438,6 +438,15 @@ class PLLC_Cart {
 			'fragments' => $fragments,
 			'cart_hash' => WC()->cart->get_cart_hash(),
 		];
+	}
+
+	/** Fragmentos WooCommerce más el único estado editable autorizado. */
+	private static function get_frontend_event_data( $form_type ) {
+		$data = self::get_cart_event_data();
+		if ( class_exists( 'PLLC_Frontend_Assets' ) ) {
+			$data['frontend_state'] = PLLC_Frontend_Assets::build_frontend_state( $form_type );
+		}
+		return $data;
 	}
 
 	/** Normaliza y autoriza todo el lote antes de tocar el carrito. */
@@ -1111,9 +1120,24 @@ class PLLC_Cart {
 
 		$keys = isset( $_POST['cart_item_keys'] ) ? (array) wp_unslash( $_POST['cart_item_keys'] ) : [];
 		$keys = array_map( 'sanitize_text_field', $keys );
+		$form_type = isset( $_POST['form_type'] ) ? sanitize_key( wp_unslash( $_POST['form_type'] ) ) : '';
+		$removed   = 0;
 
 		foreach ( $keys as $key ) {
-			WC()->cart->remove_cart_item( $key );
+			$item = WC()->cart->get_cart_item( $key );
+			if ( ! $item ) {
+				continue;
+			}
+			if ( ! $form_type ) {
+				$form_type = ! empty( $item['pllc_form_type'] ) ? sanitize_key( $item['pllc_form_type'] ) : 'particular';
+			}
+			if ( WC()->cart->remove_cart_item( $key ) ) {
+				$removed++;
+			}
+		}
+
+		if ( ! $removed ) {
+			wp_send_json_error( [ 'message' => 'El producto ya no está en el carrito.' ] );
 		}
 
 		$has_iteo_personal = false;
@@ -1125,8 +1149,8 @@ class PLLC_Cart {
 		}
 
 		wp_send_json_success( array_merge(
-			[ 'has_iteo_personal' => $has_iteo_personal ],
-			self::get_cart_event_data()
+			[ 'has_iteo_personal' => $has_iteo_personal, 'removed' => $removed ],
+			self::get_frontend_event_data( $form_type )
 		) );
 	}
 

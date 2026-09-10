@@ -28,11 +28,12 @@
 	var FORM_RESET_KEY      = 'pllc_reset_form_after_submit';
 	var CART_EVENT_KEY      = 'pllc_emit_added_to_cart_after_reload';
 
-	function rememberCartEventAfterReload( data ) {
+	function rememberCartEventAfterReload( data, eventName ) {
 		try {
 			sessionStorage.setItem( CART_EVENT_KEY, JSON.stringify( {
 				fragments: data && data.fragments ? data.fragments : {},
-				cart_hash: data && data.cart_hash ? data.cart_hash : ''
+				cart_hash: data && data.cart_hash ? data.cart_hash : '',
+				event_name: eventName || 'added_to_cart'
 			} ) );
 		} catch ( error ) {}
 	}
@@ -63,7 +64,7 @@
 					try {
 						sessionStorage.removeItem( CART_EVENT_KEY );
 					} catch ( error ) {}
-					window.jQuery( document.body ).trigger( 'added_to_cart', [
+					window.jQuery( document.body ).trigger( eventData.event_name || 'added_to_cart', [
 						eventData.fragments || {},
 						eventData.cart_hash || '',
 						window.jQuery()
@@ -145,6 +146,30 @@
 
 	function getDeliveryDate( day ) {
 		return window.PLLC_Data && PLLC_Data.day_dates ? ( PLLC_Data.day_dates[ day ] || '' ) : '';
+	}
+
+	function getCurrentFormType() {
+		var form = document.querySelector( '[data-pllc-role="order-form"][data-pllc-form-type]' );
+		if ( form ) {
+			return form.dataset.pllcFormType || '';
+		}
+		if ( document.body.classList.contains( 'pllc-page-particulares' ) || document.body.classList.contains( 'pllc-page-home' ) ) {
+			return 'particular';
+		}
+		return '';
+	}
+
+	/** Adopta únicamente el estado que PHP reconstruyó desde el carrito real. */
+	function acceptFrontendState( data ) {
+		if ( ! data || ! data.frontend_state || ! window.PLLC_Data ) {
+			return null;
+		}
+		var state = data.frontend_state;
+		PLLC_Data.cart_state = state.cart_state || {};
+		PLLC_Data.current_form = state.current_form || {};
+		PLLC_Data.students = Array.isArray( state.students ) ? state.students : [];
+		PLLC_Data.has_active_order = !! state.has_active_order;
+		return state;
 	}
 
 	function getWrapperDay( wrapper ) {
@@ -1353,66 +1378,7 @@
 		}
 	}
 
-	function applyCartFragments( data, eventName, button ) {
-		var fragments = data && data.fragments ? data.fragments : {};
-		if ( window.jQuery ) {
-			Object.keys( fragments ).forEach( function ( selector ) {
-				window.jQuery( selector ).replaceWith( fragments[ selector ] );
-			} );
-			window.jQuery( document.body ).trigger( eventName, [
-				fragments,
-				data && data.cart_hash ? data.cart_hash : '',
-				window.jQuery( button || [] )
-			] );
-		}
-	}
-
-	function resetRemovedCard( card, button ) {
-		if ( ! card ) {
-			return;
-		}
-		var mode = getProductCardMode( card, button );
-		delete card.dataset.pllcAdded;
-		delete card.dataset.pllcCartKeys;
-		delete card.dataset.pllcOriginalVariationId;
-		delete card.dataset.pllcVariationUpdate;
-		delete card.dataset.pllcQuantityUpdate;
-		delete card.dataset.pllcExistingQty;
-		delete card.dataset.pllcOriginalMeals;
-		delete card.dataset.pllcMealCartKeys;
-		delete card.dataset.pllcMealUpdate;
-		delete card.dataset.pllcFreshConfirmed;
-		delete card.dataset.pllcConfirmedMeals;
-		delete card.dataset.pllcMealConfirmation;
-		delete card.dataset.pllcMealAction;
-
-		card.querySelectorAll( '[data-pllc-cart-key]' ).forEach( function ( input ) {
-			input.removeAttribute( 'data-pllc-cart-key' );
-		} );
-
-		if ( 'checkbox' === mode ) {
-			card.querySelectorAll( '[data-pllc-role="check"]' ).forEach( function ( input ) {
-				input.checked = false;
-			} );
-			refreshFreshMealCardButton( card );
-		} else if ( 'quantity' === mode ) {
-			var qtyInput = card.querySelector( '[data-pllc-role="qty-value"]' );
-			if ( qtyInput ) {
-				qtyInput.value = 0;
-			}
-			setProductButtonState( button, getBaseAddLabel( button ), 'disabled' );
-		} else if ( 'variant' === mode ) {
-			resetCardSelection( card, mode );
-			setProductButtonState( button, getBaseAddLabel( button ), 'base' );
-			releaseGridExclusive( card );
-		} else if ( card.dataset.pllcParticularCartKey ) {
-			delete card.dataset.pllcParticularCartKey;
-			delete card.dataset.pllcParticularExistingQty;
-			setProductButtonState( button, 'Agregar', 'base' );
-		}
-	}
-
-	/** Saca del carrito real y sincroniza la tarjeta sin recargar la página. */
+	/** Saca del carrito real y recarga desde el estado canónico del servidor. */
 	function removeFromCart( keys, btn ) {
 		var collegeForm = document.querySelector( '[data-pllc-role="order-form"][data-pllc-form-type="colegios"]' );
 		var selectedStudentKey = collegeForm ? ( collegeForm.dataset.pllcStudentKey || '' ) : '';
@@ -1428,6 +1394,7 @@
 		var payload = new FormData();
 		payload.append( 'action', 'pllc_remove_order_item' );
 		payload.append( 'nonce', PLLC_Data.nonce );
+		payload.append( 'form_type', getCurrentFormType() );
 		keys.forEach( function ( k ) {
 			payload.append( 'cart_item_keys[]', k );
 		} );
@@ -1436,16 +1403,15 @@
 			.then( function ( r ) { return r.json(); } )
 			.then( function ( res ) {
 				if ( res.success ) {
-					var card = closestCard( btn );
-					resetRemovedCard( card, btn );
-					btn.disabled = false;
-					applyCartFragments( res.data, 'removed_from_cart', btn );
-					var iteoForm = document.querySelector( '[data-pllc-role="order-form"][data-pllc-form-type="iteo_personal"]' );
-					if ( iteoForm ) {
-						iteoForm.dataset.pllcActiveOrder = res.data && res.data.has_iteo_personal ? '1' : '0';
-						setOrderSubmitLabel( iteoForm, !! ( res.data && res.data.has_iteo_personal ) );
-						refreshIteoPersonalSubmitState();
+					var state = acceptFrontendState( res.data );
+					try {
+						sessionStorage.removeItem( STUDENT_RESTORE_KEY );
+					} catch ( error ) {}
+					if ( selectedStudentKey && state && ( state.students || [] ).some( function ( student ) { return student.key === selectedStudentKey; } ) ) {
+						rememberStudentAfterReload( selectedStudentKey );
 					}
+					rememberCartEventAfterReload( res.data, 'removed_from_cart' );
+					window.location.href = window.location.pathname + window.location.search;
 				} else {
 					btn.disabled = false;
 					alert( 'No se pudo quitar del carrito, probá de nuevo.' );
@@ -2018,9 +1984,15 @@
 			.then( function ( r ) { return r.json(); } )
 			.then( function ( res ) {
 				if ( res.success ) {
+					acceptFrontendState( res.data );
 					try {
-						sessionStorage.removeItem( STUDENT_RESTORE_KEY );
-						sessionStorage.setItem( FORM_RESET_KEY, '1' );
+						if ( form.dataset.pllcStudentKey ) {
+							rememberStudentAfterReload( form.dataset.pllcStudentKey );
+							sessionStorage.removeItem( FORM_RESET_KEY );
+						} else {
+							sessionStorage.removeItem( STUDENT_RESTORE_KEY );
+							sessionStorage.setItem( FORM_RESET_KEY, '1' );
+						}
 					} catch ( error ) {}
 					rememberCartEventAfterReload( res.data );
 					window.location.href = window.location.pathname + window.location.search;
@@ -2069,12 +2041,8 @@
 	 * (cantidad siempre fija en 1), no hace falta mostrarlo.
 	 */
 	function toggleUpdateCartButton() {
-		var updateBtn = document.querySelector( 'button[name="update_cart"]' );
-		if ( ! updateBtn ) {
-			return;
-		}
 		var hasParticular = document.querySelector( '.pllc-form-type-particular' ) !== null;
-		updateBtn.style.display = hasParticular ? '' : 'none';
+		document.body.classList.toggle( 'pllc-cart-has-editable-quantities', hasParticular );
 	}
 
 	/**

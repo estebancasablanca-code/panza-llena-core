@@ -74,12 +74,16 @@ class PLLC_Frontend_Assets {
 			true
 		);
 
+		$form_type      = self::get_current_page_form_type();
+		$frontend_state = self::build_frontend_state( $form_type );
+
 		wp_localize_script( 'pllc-frontend', 'PLLC_Data', [
 			'ajax_url'   => admin_url( 'admin-ajax.php' ),
 			'nonce'      => wp_create_nonce( 'pllc_add_order' ),
-			'cart_state' => self::build_cart_state( self::get_current_page_form_type() ),
-			'current_form' => self::build_current_form( self::get_current_page_form_type() ),
-			'students'   => self::build_college_students(),
+			'cart_state' => $frontend_state['cart_state'],
+			'current_form' => $frontend_state['current_form'],
+			'students'   => $frontend_state['students'],
+			'has_active_order' => $frontend_state['has_active_order'],
 			'day_titles' => self::build_day_titles(),
 			'day_dates' => class_exists( 'PLLC_Order_Rules' ) ? PLLC_Order_Rules::get_day_dates() : [],
 			'day_availability' => class_exists( 'PLLC_Order_Rules' ) ? PLLC_Order_Rules::get_day_availability() : [],
@@ -92,6 +96,27 @@ class PLLC_Frontend_Assets {
 			[],
 			PLLC_VERSION
 		);
+	}
+
+	/**
+	 * Fuente canónica del estado editable. Se usa tanto al cargar la página
+	 * como después de cada mutación AJAX para no reconstruir el carrito en JS.
+	 */
+	public static function build_frontend_state( $form_type ) {
+		$form_type = sanitize_key( (string) $form_type );
+		if ( ! in_array( $form_type, [ 'colegios', 'iteo_personal', 'iteo_pacientes', 'particular' ], true ) ) {
+			$form_type = '';
+		}
+
+		$students   = self::build_college_students();
+		$cart_state = 'colegios' === $form_type ? [] : self::build_cart_state( $form_type );
+		return [
+			'form_type'        => $form_type,
+			'cart_state'       => $cart_state,
+			'current_form'     => 'colegios' === $form_type ? [] : self::build_current_form( $form_type ),
+			'students'         => $students,
+			'has_active_order' => 'colegios' === $form_type ? ! empty( $students ) : ! empty( $cart_state ),
+		];
 	}
 
 	/**
