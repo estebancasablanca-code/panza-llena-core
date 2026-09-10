@@ -185,9 +185,27 @@ body:is(.pllc-page-iteo-pacientes, .pllc-page-iteo-personal) .pllc-add-btn .elem
 .elementor-menu-cart__product > .pllc-mini-cart-group,
 .woocommerce-mini-cart-item > .pllc-mini-cart-group {
 	grid-column: 1 / -1;
-	order: -100;
 	width: 100%;
 	box-sizing: border-box;
+}
+
+/* Elementor fija la imagen en las filas 1–3. En el primer producto de cada
+   pedido reservamos la fila 1 para el encabezado y desplazamos la ficha
+   completa a partir de la fila 2. */
+.elementor-menu-cart__product.pllc-mini-cart-group-start > .pllc-mini-cart-group {
+	grid-row: 1 !important;
+}
+
+.elementor-menu-cart__product.pllc-mini-cart-group-start > .elementor-menu-cart__product-image {
+	grid-row: 2 / span 2 !important;
+}
+
+.elementor-menu-cart__product.pllc-mini-cart-group-start > .elementor-menu-cart__product-name {
+	grid-row: 2 !important;
+}
+
+.elementor-menu-cart__product.pllc-mini-cart-group-start > .elementor-menu-cart__product-price {
+	grid-row: 3 !important;
 }
 
 .elementor-menu-cart__product-name > .pllc-mini-cart-day-label,

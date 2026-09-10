@@ -64,7 +64,8 @@ check_ui_regression(
 check_ui_regression(
 	false !== strpos( $frontend, "group.querySelectorAll( '.pllc-cart-group-summary' )" )
 		&& false !== strpos( $frontend, 'function observeMiniCartContent()' )
-		&& false !== strpos( $frontend_css, 'order: -100;' ),
+		&& false !== strpos( $frontend, "item.classList.toggle( 'pllc-mini-cart-group-start', Boolean( group ) );" )
+		&& false !== strpos( $frontend_css, 'grid-row: 2 / span 2 !important;' ),
 	'Do not render student form data or observations in the side cart.'
 );
 
