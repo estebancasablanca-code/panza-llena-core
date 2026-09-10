@@ -45,7 +45,7 @@
 
 .pllc-style-grid {
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
 	gap: 18px;
 }
 
@@ -67,7 +67,7 @@
 
 .pllc-style-fields {
 	display: grid;
-	grid-template-columns: minmax(150px, 1fr) minmax(210px, auto);
+	grid-template-columns: minmax(100px, 120px) minmax(0, 1fr);
 	gap: 13px 16px;
 	align-items: center;
 }
@@ -82,14 +82,17 @@
 
 .pllc-color-control {
 	display: grid;
-	grid-template-columns: minmax(190px, 1fr) auto;
+	grid-template-columns: minmax(0, 1fr) auto;
 	gap: 7px;
 	align-items: center;
-	min-width: 285px;
+	min-width: 0;
+	width: 100%;
 }
 
 .pllc-color-source {
-	max-width: 260px;
+	min-width: 0;
+	width: 100%;
+	max-width: none;
 }
 
 .pllc-color-status {
@@ -98,6 +101,7 @@
 	gap: 6px;
 	font-size: 12px;
 	color: #646970;
+	white-space: nowrap;
 }
 
 .pllc-color-swatch {

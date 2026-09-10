@@ -905,6 +905,12 @@ class PLLC_Deliveries {
 	}
 
 	private static function format_delivery_date( $date, $day ) {
+		if ( class_exists( 'PLLC_Order_Rules' ) ) {
+			$formatted = PLLC_Order_Rules::format_delivery_label( $day, $date );
+			if ( $formatted ) {
+				return $formatted;
+			}
+		}
 		if ( self::is_valid_date( $date ) ) {
 			$parsed = DateTimeImmutable::createFromFormat( '!Y-m-d', $date, wp_timezone() );
 			return wp_date( 'D j/m/Y', $parsed->getTimestamp(), wp_timezone() );
