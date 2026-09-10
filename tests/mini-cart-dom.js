@@ -58,6 +58,11 @@ const group = {
 
 const item = {
 	children: [ group ],
+	classList: {
+		toggle: function ( className, enabled ) {
+			this[className] = enabled;
+		},
+	},
 	querySelector: function () { return null; },
 	querySelectorAll: function () { return []; },
 };
@@ -95,6 +100,7 @@ const functions = factory( fakeDocument, fakeWindow, FakeMutationObserver );
 
 functions.arrange();
 check( summaryRemoved, 'Remove student form data and observations from the side cart.' );
+check( item.classList['pllc-mini-cart-group-start'] === true, 'Mark the first product in each group.' );
 
 functions.observe();
 check( typeof observerCallback === 'function', 'Register the dynamic Elementor observer.' );
@@ -108,8 +114,11 @@ observerCallback( [ {
 check( queryRuns === runsBeforeMutation + 1, 'Reprocess the side cart after Elementor changes it.' );
 
 check(
-	/\.pllc-mini-cart-group\s*\{[^}]*order:\s*-100;/s.test( css ),
-	'Keep the order heading before the product image.'
+	/\.pllc-mini-cart-group\s*\{[^}]*grid-row:\s*1\s*!important;/s.test( css )
+		&& /\.elementor-menu-cart__product-image\s*\{[^}]*grid-row:\s*2\s*\/\s*span\s*2\s*!important;/s.test( css )
+		&& /\.elementor-menu-cart__product-name\s*\{[^}]*grid-row:\s*2\s*!important;/s.test( css )
+		&& /\.elementor-menu-cart__product-price\s*\{[^}]*grid-row:\s*3\s*!important;/s.test( css ),
+	'Place the order heading before the complete first product card.'
 );
 
 console.log( 'Mini cart DOM checks passed.' );

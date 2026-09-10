@@ -2248,6 +2248,7 @@
 
 			// Los datos del formulario pertenecen al carrito completo. En el lateral
 			// dejamos únicamente el título del pedido para mantenerlo compacto.
+			item.classList.toggle( 'pllc-mini-cart-group-start', Boolean( group ) );
 			if ( group ) {
 				group.querySelectorAll( '.pllc-cart-group-summary' ).forEach( function ( summary ) {
 					summary.remove();
