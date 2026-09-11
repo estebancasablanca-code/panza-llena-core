@@ -1,0 +1,25 @@
+/* Sólo correos. Los estilos esenciales también están inline en las plantillas. */
+.pllc-email table { border-collapse: collapse; border-spacing: 0; }
+.pllc-email, .pllc-email td, .pllc-email th, .pllc-email p, .pllc-email h2, .pllc-email h3 {
+	font-family: Arial, Helvetica, sans-serif;
+}
+.pllc-email-product-name, .pllc-email-product-name a, .pllc-email-product-name span {
+	font-size: 16px !important;
+	line-height: 21px !important;
+	color: #302a26;
+}
+.pllc-email img { display: block; border: 0; outline: none; }
+.pllc-email-amount p, .pllc-email-quantity p { margin: 0; }
+
+/* Outlook clásico conserva la tabla de escritorio. Los clientes móviles reordenan las celdas. */
+@media only screen and (max-width: 480px) {
+	.pllc-email-columns { display: none !important; }
+	.pllc-email-products, .pllc-email-products > tbody { display: block !important; width: 100% !important; }
+	.pllc-email-item { display: block !important; width: 100% !important; font-size: 0 !important; }
+	.pllc-email-product { display: block !important; width: 100% !important; padding: 14px 0 0 !important; }
+	.pllc-email-quantity, .pllc-email-amount { display: inline-block !important; box-sizing: border-box !important; vertical-align: top !important; padding: 5px 0 14px !important; font-size: 13px !important; line-height: 20px !important; }
+	.pllc-email-quantity { width: 58% !important; text-align: left !important; padding-left: 60px !important; }
+	.pllc-email-amount { width: 42% !important; text-align: right !important; }
+	.pllc-email-item-unpriced .pllc-email-quantity { width: 100% !important; }
+	.pllc-email-quantity-label { display: inline !important; font-size: 13px !important; line-height: 20px !important; }
+}

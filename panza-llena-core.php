@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Panza Llena Core
  * Description:       Lógica de pedidos, accesos institucionales y entregas de Panza Llena sobre WooCommerce.
- * Version:            0.23.66
+ * Version:            0.23.67
  * Requires at least:  6.9
  * Requires PHP:        7.4
  * Author:              Esteban
@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'PLLC_VERSION', '0.23.66' );
+define( 'PLLC_VERSION', '0.23.67' );
 define( 'PLLC_PATH', plugin_dir_path( __FILE__ ) );
 define( 'PLLC_URL', plugin_dir_url( __FILE__ ) );
 
@@ -53,6 +53,8 @@ function pllc_module_manifest() {
 		'includes/class-pllc-code-access.php'           => 'PLLC_Code_Access',
 		'includes/class-pllc-access.php'                => 'PLLC_Access',
 		'includes/class-pllc-order-rules.php'           => null,
+		'includes/class-pllc-item-order.php'            => null,
+		'includes/trait-pllc-order-presentation.php'    => null,
 		'includes/class-pllc-frontend-assets.php'       => 'PLLC_Frontend_Assets',
 		'includes/class-pllc-order-received-styles.php' => 'PLLC_Order_Received_Styles',
 		'includes/class-pllc-styles.php'                => 'PLLC_Styles',
@@ -61,6 +63,7 @@ function pllc_module_manifest() {
 		'includes/class-pllc-cart.php'                  => 'PLLC_Cart',
 		'includes/class-pllc-cart-groups.php'           => 'PLLC_Cart_Groups',
 		'includes/class-pllc-order-details.php'         => 'PLLC_Order_Details',
+		'includes/class-pllc-emails.php'                => 'PLLC_Emails',
 		'includes/class-pllc-checkout.php'              => 'PLLC_Checkout',
 		'includes/class-pllc-deliveries.php'            => 'PLLC_Deliveries',
 	];
