@@ -59,6 +59,7 @@ function sorted_keys_for_test( $contents ) {
 	return array_keys( $cart->cart_contents );
 }
 
+require dirname( __DIR__ ) . '/includes/class-pllc-item-order.php';
 require dirname( __DIR__ ) . '/includes/class-pllc-cart-groups.php';
 
 check_cart_order(

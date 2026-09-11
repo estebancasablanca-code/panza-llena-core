@@ -22,7 +22,13 @@ jobs:
       - name: Check native checkout notes
         run: php tests/checkout-notes.php
       - name: Check checkout and order communications
-        run: php tests/order-communications.php
+        run: php tests/order-communications.php --preview-dir /tmp/pllc-email-previews
+      - name: Save email previews from the real templates
+        uses: actions/upload-artifact@v4
+        with:
+          name: email-previews
+          path: /tmp/pllc-email-previews
+          retention-days: 7
       - name: Check reported UI regressions
         run: php tests/ui-regressions.php
       - name: Check full and side cart ordering

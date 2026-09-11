@@ -119,51 +119,14 @@ class PLLC_Cart_Groups {
 		if ( ! $cart || empty( $cart->cart_contents ) || ! is_array( $cart->cart_contents ) ) {
 			return;
 		}
-
-		$group_order = [];
-		$decorated   = [];
-		$position    = 0;
-
-		foreach ( $cart->cart_contents as $cart_key => $cart_item ) {
-			$group_key = self::get_display_group_key( $cart_item );
-
-			if ( ! isset( $group_order[ $group_key ] ) ) {
-				$group_order[ $group_key ] = count( $group_order );
-			}
-
-			$decorated[] = [
-				'key'         => $cart_key,
-				'item'        => $cart_item,
-				'is_particular' => 'particular' === self::get_form_type( $cart_item ) ? 1 : 0,
-				'group_order' => $group_order[ $group_key ],
-				'day_order'   => self::get_day_sort_index( $cart_item ),
-				'meal_order'  => self::get_meal_sort_index( $cart_item ),
-				'position'    => $position++,
+		$cart->cart_contents = PLLC_Item_Order::sort( $cart->cart_contents, static function ( $item ) {
+			return [
+				'type' => self::get_form_type( $item ),
+				'form' => isset( $item['pllc_form'] ) && is_array( $item['pllc_form'] ) ? $item['pllc_form'] : [],
+				'day_order' => self::get_day_sort_index( $item ),
+				'meals' => isset( $item['pllc_meals'] ) && is_array( $item['pllc_meals'] ) ? $item['pllc_meals'] : [],
 			];
-		}
-
-		usort( $decorated, function ( $a, $b ) {
-			if ( $a['is_particular'] !== $b['is_particular'] ) {
-				return $a['is_particular'] <=> $b['is_particular'];
-			}
-			if ( $a['group_order'] !== $b['group_order'] ) {
-				return $a['group_order'] <=> $b['group_order'];
-			}
-			if ( $a['day_order'] !== $b['day_order'] ) {
-				return $a['day_order'] <=> $b['day_order'];
-			}
-			if ( $a['meal_order'] !== $b['meal_order'] ) {
-				return $a['meal_order'] <=> $b['meal_order'];
-			}
-			return $a['position'] <=> $b['position'];
 		} );
-
-		$sorted = [];
-		foreach ( $decorated as $entry ) {
-			$sorted[ $entry['key'] ] = $entry['item'];
-		}
-
-		$cart->cart_contents = $sorted;
 	}
 
 	private static function get_day_sort_index( $cart_item ) {
@@ -174,17 +137,9 @@ class PLLC_Cart_Groups {
 
 		$prefix = self::DAY_CATEGORY_PREFIX[ $form_type ];
 		$terms  = wc_get_product_terms( $cart_item['product_id'], 'product_cat', [ 'fields' => 'slugs' ] );
-		$days   = [
-			'lunes'    => 1,
-			'martes'   => 2,
-			'miercoles' => 3,
-			'jueves'   => 4,
-			'viernes'  => 5,
-			'sabado'   => 6,
-		];
 		if ( ! empty( $cart_item['pllc_day'] ) ) {
 			$stored_day = sanitize_key( $cart_item['pllc_day'] );
-			return isset( $days[ $stored_day ] ) ? $days[ $stored_day ] : 99;
+			return PLLC_Item_Order::day_index( $stored_day );
 		}
 
 		if ( is_wp_error( $terms ) ) {
@@ -196,23 +151,10 @@ class PLLC_Cart_Groups {
 				continue;
 			}
 			$day = sanitize_title( substr( $slug, strlen( $prefix ) ) );
-			return isset( $days[ $day ] ) ? $days[ $day ] : 99;
+			return PLLC_Item_Order::day_index( $day );
 		}
 
 		return 99;
-	}
-
-	private static function get_meal_sort_index( $cart_item ) {
-		if ( 'iteo_personal' !== self::get_form_type( $cart_item ) || empty( $cart_item['pllc_meals'][0] ) ) {
-			return 99;
-		}
-
-		$meal_order = [
-			'almuerzo' => 1,
-			'cena'     => 2,
-		];
-		$meal = sanitize_key( $cart_item['pllc_meals'][0] );
-		return isset( $meal_order[ $meal ] ) ? $meal_order[ $meal ] : 99;
 	}
 
 	private static function get_form_type( $cart_item ) {
@@ -376,15 +318,8 @@ class PLLC_Cart_Groups {
 	 * por tipo — un solo título para todo ese tipo en el carrito.
 	 */
 	private static function get_display_group_key( $cart_item ) {
-		$form_type = self::get_form_type( $cart_item );
-		$form      = ( isset( $cart_item['pllc_form'] ) && is_array( $cart_item['pllc_form'] ) ) ? $cart_item['pllc_form'] : [];
-
-		if ( ! empty( $form['nombre_alumno'] ) ) {
-			$colegio = isset( $form['colegio'] ) ? $form['colegio'] : '';
-			return 'nombre:' . strtolower( trim( $form['nombre_alumno'] ) ) . '|' . strtolower( trim( $colegio ) );
-		}
-
-		return 'tipo:' . $form_type;
+		$form = isset( $cart_item['pllc_form'] ) && is_array( $cart_item['pllc_form'] ) ? $cart_item['pllc_form'] : [];
+		return PLLC_Item_Order::group_key( self::get_form_type( $cart_item ), $form );
 	}
 
 	public static function inject_group_header( $item_data, $cart_item ) {

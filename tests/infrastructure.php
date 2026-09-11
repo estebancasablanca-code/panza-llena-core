@@ -70,6 +70,9 @@ check_infrastructure( false !== strpos( $main_source, 'PLLC_Cache_Control::boots
 require dirname( __DIR__ ) . '/panza-llena-core.php';
 check_infrastructure( pllc_check_dependencies(), 'The core must load with WooCommerce even when Elementor is absent.' );
 check_infrastructure( ! empty( $GLOBALS['pllc_actions']['admin_notices'] ), 'Missing Elementor must remain visible as an administrator warning.' );
-check_infrastructure( 14 === count( pllc_module_manifest() ), 'Every production module must remain present in the bootstrap manifest.' );
+foreach ( pllc_module_manifest() as $file => $class_name ) {
+	check_infrastructure( is_file( dirname( __DIR__ ) . '/' . $file ), 'Every declared module must exist: ' . $file );
+}
+check_infrastructure( in_array( 'PLLC_Emails', pllc_module_manifest(), true ), 'The email renderer must be registered.' );
 
 echo "Infrastructure checks passed.\n";
